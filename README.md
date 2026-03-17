@@ -11,30 +11,15 @@
 
 # CRUXpider
 
-CRUXpider is a lightweight academic paper analysis platform for title-first research workflows. Give it a paper title, and it helps you retrieve venue metadata, PDF links, related papers, AI relevance signals, and a practical code search fallback for reproducibility.
+Academic paper analysis from titles, with arXiv metadata, OpenAlex related-paper discovery, and repository search fallback for reproducibility workflows.
 
-## Why CRUXpider
+## Highlights
 
-Researchers often start from a title, not a DOI or a curated bibliography. CRUXpider is built for that reality:
-
-- Search a single paper from the web UI or API.
-- Discover related papers with OpenAlex.
-- Batch-process a CSV of titles.
-- Surface code-search links when structured code metadata is unavailable.
-- Keep the stack simple enough to self-host and extend.
-
-## Features
-
-- `Single paper analysis`
-  Returns venue or journal information, PDF links, categories, AI-related tags, and repository fallback links.
-- `Related paper discovery`
-  Uses OpenAlex related-works metadata to expand a paper into adjacent literature.
-- `Batch processing`
-  Accepts a CSV of titles and returns a CSV of enriched results.
-- `Web UI + JSON API`
-  Includes a browser UI and direct API endpoints for scripting or integration.
-- `Graceful degradation`
-  External data-source failures do not take the whole app down.
+- `Single paper analysis`: venue, PDF, categories, AI signal, and code-search fallback
+- `Related papers`: OpenAlex-based literature expansion
+- `CSV batch mode`: title list in, enriched CSV out
+- `Web UI + JSON API`: simple to use locally or extend in other tooling
+- `Graceful degradation`: keeps working when external sources are incomplete
 
 ## Data Sources
 
