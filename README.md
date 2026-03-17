@@ -17,7 +17,7 @@ Academic paper analysis from titles, with multi-source paper resolution, confide
 
 - `Single paper analysis`: multi-source title resolution, venue, PDF, categories, confidence, identifiers, and ranked code candidates
 - `Method and dataset hints`: heuristic extraction from titles, abstracts, and source metadata
-- `Related papers`: Semantic Scholar + OpenAlex ranking pipeline with explanations from venue, year, topic, method, author, and citation signals
+- `Related papers`: Semantic Scholar + OpenAlex ranking pipeline with explanations from venue, year, topic, method, author, and citation signals, plus grouped research-navigation views
 - `CSV batch mode`: title list in, enriched CSV out
 - `Web UI + JSON API`: simple to use locally or extend in other tooling
 - `Graceful degradation`: keeps working when external sources are incomplete
@@ -142,7 +142,7 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
 }
 ```
 
-Related-paper responses now include `score`, `signal_count`, `sources`, and short `reasons` so the UI can explain why a recommendation is relevant instead of showing an opaque ranked list.
+Related-paper responses now include `score`, `signal_count`, `sources`, short `reasons`, and grouped views such as `same_author`, `same_method`, `same_wave`, and `strong_follow_up`.
 
 ## Running Tests
 

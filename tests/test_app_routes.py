@@ -64,18 +64,21 @@ class AppRoutesTestCase(unittest.TestCase):
                 "score": 0.88,
                 "sources": ["semantic_scholar"],
                 "reasons": ["Recommended by Semantic Scholar."],
+                "groups": ["strong-follow-up"],
             }
         ]
 
-        response = self.client.post(
-            "/api/find_relevant_papers",
-            json={"title": "Attention Is All You Need", "max_papers": 1},
-        )
+        with patch("app.engine.group_relevant_papers", return_value={"strong_follow_up": mock_find_relevant.return_value}):
+            response = self.client.post(
+                "/api/find_relevant_papers",
+                json={"title": "Attention Is All You Need", "max_papers": 1},
+            )
 
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
         self.assertEqual(payload["total"], 1)
         self.assertEqual(payload["papers"][0]["title"], "BERT")
+        self.assertIn("grouped_papers", payload)
 
     @patch("app.engine.analyze_single_paper")
     def test_batch_process_returns_csv(self, mock_analyze):

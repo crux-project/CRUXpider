@@ -508,7 +508,12 @@ function displayRelevantResults(data) {
         signals: lang === 'en' ? 'Signals' : '信号数',
         reasons: lang === 'en' ? 'Why recommended' : '推荐理由',
         sources: lang === 'en' ? 'Sources' : '来源',
-        empty: lang === 'en' ? 'No related papers found. Try another title.' : '未找到相关论文，请尝试其他论文标题'
+        empty: lang === 'en' ? 'No related papers found. Try another title.' : '未找到相关论文，请尝试其他论文标题',
+        grouped: lang === 'en' ? 'Research Guide View' : '研究导航分组',
+        same_author: lang === 'en' ? 'Same Author' : '同作者线索',
+        same_method: lang === 'en' ? 'Same Method' : '同方法线索',
+        same_wave: lang === 'en' ? 'Same Wave' : '同研究波段',
+        strong_follow_up: lang === 'en' ? 'Strong Follow-up' : '强后续工作'
     };
     
     let html = `
@@ -553,6 +558,7 @@ function displayRelevantResults(data) {
                     <i class="fas fa-info-circle me-2"></i>${t.empty}
                 </div>
                 `}
+                ${data.grouped_papers ? formatRelatedGroups(data.grouped_papers, t) : ''}
             </div>
         </div>
     `;
@@ -697,6 +703,38 @@ function formatRepositoryCandidates(candidates, texts) {
             ${candidate.reasons && candidate.reasons.length > 0 ? `<div class="repo-reasons">${candidate.reasons.map(reason => `<div class="signal-line">${escapeHtml(reason)}</div>`).join('')}</div>` : ''}
         </div>
     `).join('');
+}
+
+function formatRelatedGroups(groupedPapers, texts) {
+    const sections = [
+        ['same_author', texts.same_author],
+        ['same_method', texts.same_method],
+        ['same_wave', texts.same_wave],
+        ['strong_follow_up', texts.strong_follow_up],
+    ];
+
+    const visibleSections = sections.filter(([key]) => groupedPapers[key] && groupedPapers[key].length > 0);
+    if (visibleSections.length === 0) {
+        return '';
+    }
+
+    return `
+        <div class="related-groups mt-4">
+            <h5 class="mb-3">${texts.grouped}</h5>
+            ${visibleSections.map(([key, label]) => `
+                <div class="related-group-card">
+                    <div class="related-group-title">${label}</div>
+                    <div class="related-group-list">
+                        ${groupedPapers[key].slice(0, 4).map(paper => `
+                            <div class="related-group-item">
+                                ${paper.url ? `<a href="${escapeHtml(paper.url)}" target="_blank">${escapeHtml(paper.title)}</a>` : escapeHtml(paper.title)}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
 }
 
 // Show alert message

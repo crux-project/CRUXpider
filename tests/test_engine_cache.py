@@ -88,6 +88,19 @@ class EngineCacheTestCase(unittest.TestCase):
         self.assertIn("WMT", combined[0]["datasets"])
         self.assertEqual(combined[0]["score"], 0.95)
 
+    def test_group_relevant_papers_buckets_by_group_tag(self):
+        engine = CRUXpiderEngine()
+        grouped = engine.group_relevant_papers(
+            [
+                {"title": "Paper A", "groups": ["same-author", "same-wave"]},
+                {"title": "Paper B", "groups": ["strong-follow-up"]},
+            ]
+        )
+
+        self.assertEqual(grouped["same_author"][0]["title"], "Paper A")
+        self.assertEqual(grouped["same_wave"][0]["title"], "Paper A")
+        self.assertEqual(grouped["strong_follow_up"][0]["title"], "Paper B")
+
 
 if __name__ == "__main__":
     unittest.main()

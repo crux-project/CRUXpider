@@ -383,6 +383,34 @@ html {
     margin-top: 0.45rem;
 }
 
+.related-groups {
+    border-top: 1px solid #e2e8f0;
+    padding-top: 1.25rem;
+}
+
+.related-group-card {
+    padding: 0.9rem 1rem;
+    margin-bottom: 0.8rem;
+    border-radius: 0.9rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.related-group-title {
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.5rem;
+}
+
+.related-group-item {
+    margin-bottom: 0.35rem;
+    color: #475569;
+}
+
+.related-group-item:last-child {
+    margin-bottom: 0;
+}
+
 /* Loading Spinner */
 .spinner-border {
     width: 3rem;

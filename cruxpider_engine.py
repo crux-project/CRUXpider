@@ -346,6 +346,7 @@ class CRUXpiderEngine:
                 "score": round(item.get("score", 0.0), 3),
                 "reasons": item.get("reasons", [])[:3],
                 "signal_count": item.get("signal_count", 0),
+                "groups": item.get("groups", []),
             }
             for item in ranked[:max_papers]
         ]
@@ -1012,6 +1013,7 @@ class CRUXpiderEngine:
         reasons = list(candidate.get("reasons", []))
         signal_count = 0
         score = float(candidate.get("score", 0.0))
+        groups: set[str] = set()
 
         title = candidate.get("title") or ""
         title_similarity = _title_similarity(context["title"], title)
@@ -1031,6 +1033,7 @@ class CRUXpiderEngine:
             score += 0.05
             reasons.append("Published in the same venue as the seed paper.")
             signal_count += 1
+            groups.add("same-wave")
 
         candidate_year = candidate.get("year")
         if context["year"] and candidate_year:
@@ -1039,6 +1042,7 @@ class CRUXpiderEngine:
                 score += 0.03
                 reasons.append("Published in a nearby year, suggesting the same research wave.")
                 signal_count += 1
+                groups.add("same-wave")
 
         author_overlap = [
             author for author in candidate.get("authors", [])
@@ -1048,6 +1052,7 @@ class CRUXpiderEngine:
             score += 0.08
             reasons.append(f"Shares author overlap with the seed paper: {', '.join(author_overlap[:2])}.")
             signal_count += 1
+            groups.add("same-author")
 
         category_overlap = {
             category.lower()
@@ -1058,6 +1063,7 @@ class CRUXpiderEngine:
             score += 0.05
             reasons.append(f"Overlaps on topics: {', '.join(sorted(category_overlap)[:2])}.")
             signal_count += 1
+            groups.add("same-method")
 
         candidate_methods, candidate_datasets = self._extract_methods_and_datasets(
             [title, candidate.get("abstract_text") or "", " ".join(candidate.get("categories") or [])]
@@ -1074,16 +1080,19 @@ class CRUXpiderEngine:
             score += 0.06
             reasons.append(f"Touches the same method family: {', '.join(sorted(method_overlap)[:2])}.")
             signal_count += 1
+            groups.add("same-method")
 
         citation_count = int(candidate.get("citation_count") or 0)
         if citation_count >= 500:
             score += 0.03
             reasons.append("Highly cited within the neighborhood of this topic.")
             signal_count += 1
+            groups.add("strong-follow-up")
 
         candidate["score"] = min(0.99, round(score, 3))
         candidate["reasons"] = _dedupe_strings(reasons)
         candidate["signal_count"] = signal_count
+        candidate["groups"] = sorted(groups)
         return candidate
 
     def _merge_related_entry(self, combined: list[dict[str, Any]], entry: dict[str, Any]) -> None:
@@ -1106,10 +1115,31 @@ class CRUXpiderEngine:
                 current["categories"] = _dedupe_strings((current.get("categories") or []) + (entry.get("categories") or []))
                 current["methods"] = _dedupe_strings((current.get("methods") or []) + (entry.get("methods") or []))
                 current["datasets"] = _dedupe_strings((current.get("datasets") or []) + (entry.get("datasets") or []))
+                current["groups"] = sorted(set(current.get("groups", [])) | set(entry.get("groups", [])))
                 if not current.get("url") and entry.get("url"):
                     current["url"] = entry["url"]
                 return
         combined.append(entry)
+
+    def group_relevant_papers(self, papers: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+        grouped = {
+            "same_author": [],
+            "same_method": [],
+            "same_wave": [],
+            "strong_follow_up": [],
+        }
+        mapping = {
+            "same-author": "same_author",
+            "same-method": "same_method",
+            "same-wave": "same_wave",
+            "strong-follow-up": "strong_follow_up",
+        }
+        for paper in papers:
+            for group in paper.get("groups", []):
+                target = mapping.get(group)
+                if target:
+                    grouped[target].append(paper)
+        return grouped
 
     def _infer_ai_related(self, categories: list[str]) -> str:
         lowered = {category.lower() for category in categories}

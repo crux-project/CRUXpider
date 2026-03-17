@@ -107,6 +107,7 @@ def find_relevant_papers():
     return jsonify(
         {
             "papers": papers,
+            "grouped_papers": engine.group_relevant_papers(papers),
             "total": len(papers),
             "original_title": paper_title,
         }
