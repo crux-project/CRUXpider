@@ -21,6 +21,7 @@ import requests
 from config import (
     CROSSREF_API_BASE,
     CROSSREF_MAILTO,
+    DATACITE_API_BASE,
     GITHUB_API_BASE,
     GITHUB_TOKEN,
     OPENALEX_API_BASE,
@@ -186,6 +187,7 @@ class CRUXpiderEngine:
             "categories": [],
             "ai_related": "NO",
             "datasets": [],
+            "dataset_candidates": [],
             "methods": [],
             "repository_url": "N/A",
             "repository_candidates": [],
@@ -235,6 +237,13 @@ class CRUXpiderEngine:
         )
         result["ai_related"] = self._infer_ai_related(result["categories"])
 
+        dataset_candidates, dataset_warning = self._discover_datasets(best, merged)
+        result["dataset_candidates"] = dataset_candidates
+        if dataset_candidates:
+            result["datasets"] = dataset_candidates[:8]
+        if dataset_warning:
+            result["warnings"].append(dataset_warning)
+
         repositories, repo_warning = self._discover_repositories(best, merged)
         result["repository_candidates"] = repositories
         if repositories:
@@ -259,6 +268,7 @@ class CRUXpiderEngine:
             "openalex": False,
             "semantic_scholar": False,
             "crossref": False,
+            "datacite": False,
             "github_api": False,
             "github_search_fallback": True,
         }
@@ -288,6 +298,10 @@ class CRUXpiderEngine:
         status["crossref"] = self._check_endpoint(
             f"{CROSSREF_API_BASE}/works",
             params={"query.title": "Attention Is All You Need", "rows": 1},
+        )
+        status["datacite"] = self._check_endpoint(
+            f"{DATACITE_API_BASE}/dois",
+            params={"query": "imagenet", "resource-type-id": "dataset", "page[size]": 1},
         )
         status["github_api"] = self._check_endpoint(
             f"{GITHUB_API_BASE}/search/repositories",
@@ -729,6 +743,256 @@ class CRUXpiderEngine:
                 return False
             return True
         return False
+
+    def _discover_datasets(
+        self,
+        best: PaperCandidate,
+        merged: MergedPaper,
+    ) -> tuple[list[dict[str, Any]], str | None]:
+        context = self._build_dataset_context(best, merged)
+        candidates: list[dict[str, Any]] = []
+        warning = None
+
+        public_fetchers = [
+            self._fetch_datacite_dataset_candidates,
+            self._fetch_crossref_dataset_candidates,
+            self._fetch_openalex_dataset_candidates,
+        ]
+        with ThreadPoolExecutor(max_workers=len(public_fetchers)) as executor:
+            futures = [executor.submit(fetcher, context) for fetcher in public_fetchers]
+            for future in as_completed(futures):
+                try:
+                    for candidate in future.result():
+                        self._merge_dataset_entry(candidates, candidate)
+                except Exception as exc:
+                    logger.warning("Dataset discovery source failed: %s", exc)
+                    warning = "Some public dataset sources could not be queried; results may be incomplete."
+
+        for heuristic in context["heuristic_datasets"]:
+            self._merge_dataset_entry(
+                candidates,
+                {
+                    "name": heuristic,
+                    "url": "",
+                    "source": "heuristic",
+                    "score": 0.25,
+                    "evidence": ["Extracted from public title/abstract/topic text."],
+                },
+            )
+
+        ranked = sorted(
+            [
+                candidate
+                for candidate in candidates
+                if candidate.get("score", 0.0) >= 0.56 or candidate.get("source") == "heuristic"
+            ],
+            key=lambda item: (item["score"], item["name"]),
+            reverse=True,
+        )
+        return ranked[:8], warning
+
+    def _build_dataset_context(self, best: PaperCandidate, merged: MergedPaper) -> dict[str, Any]:
+        authors = _dedupe_strings([author for candidate in merged.candidates for author in candidate.authors])[:10]
+        heuristics = _dedupe_strings([item for candidate in merged.candidates for item in candidate.datasets])[:12]
+        return {
+            "title": best.title,
+            "normalized_title": _normalize_title(best.title),
+            "title_tokens": [token for token in _normalize_title(best.title).split() if len(token) > 3][:8],
+            "authors": authors,
+            "author_set": {author.lower() for author in authors},
+            "year": best.year,
+            "identifiers": merged.identifiers,
+            "heuristic_datasets": heuristics,
+            "methods": _dedupe_strings([item for candidate in merged.candidates for item in candidate.methods])[:10],
+            "categories": _dedupe_strings([item for candidate in merged.candidates for item in candidate.categories])[:10],
+        }
+
+    def _fetch_datacite_dataset_candidates(self, context: dict[str, Any]) -> list[dict[str, Any]]:
+        queries = []
+        doi = context["identifiers"].get("doi")
+        arxiv_id = context["identifiers"].get("arxiv")
+        if doi:
+            queries.append(doi)
+        if arxiv_id:
+            queries.append(f"10.48550/arXiv.{arxiv_id}")
+            queries.append(arxiv_id)
+        queries.append(" ".join(context["title_tokens"][:4]) or context["title"])
+
+        candidates: list[dict[str, Any]] = []
+        for query in _dedupe_strings(queries):
+            response = self.session.get(
+                f"{DATACITE_API_BASE}/dois",
+                params={"query": query, "resource-type-id": "dataset", "page[size]": 6},
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+            response.raise_for_status()
+            for item in response.json().get("data", []):
+                attrs = item.get("attributes", {})
+                candidate = {
+                    "name": ((attrs.get("titles") or [{"title": "Untitled dataset"}])[0]).get("title", "Untitled dataset"),
+                    "url": attrs.get("url") or f"https://doi.org/{attrs.get('doi')}" if attrs.get("doi") else "",
+                    "source": "datacite",
+                    "doi": attrs.get("doi", ""),
+                    "year": attrs.get("publicationYear"),
+                    "authors": [creator.get("name") for creator in attrs.get("creators", []) if creator.get("name")],
+                    "score": 0.48,
+                    "evidence": [],
+                }
+                related_identifiers = attrs.get("relatedIdentifiers") or []
+                self._score_dataset_candidate(candidate, context, related_identifiers)
+                candidates.append(candidate)
+        return candidates
+
+    def _fetch_crossref_dataset_candidates(self, context: dict[str, Any]) -> list[dict[str, Any]]:
+        query_text = " ".join(context["title_tokens"][:5]) or context["title"]
+        response = self.session.get(
+            f"{CROSSREF_API_BASE}/types/dataset/works",
+            params=self._with_mailto({"query.bibliographic": query_text, "rows": 6}),
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        candidates: list[dict[str, Any]] = []
+        for item in response.json().get("message", {}).get("items", []):
+            title = ((item.get("title") or [None])[0]) or "Untitled dataset"
+            candidate = {
+                "name": title,
+                "url": item.get("URL", ""),
+                "source": "crossref",
+                "doi": item.get("DOI", ""),
+                "year": self._crossref_year(item),
+                "authors": [
+                    " ".join(filter(None, [author.get("given"), author.get("family")])).strip()
+                    for author in item.get("author", [])
+                    if author.get("given") or author.get("family")
+                ],
+                "score": 0.38,
+                "evidence": [],
+            }
+            related_identifiers = []
+            for relation_name, relation_items in (item.get("relation") or {}).items():
+                for relation_item in relation_items:
+                    related_identifiers.append(
+                        {
+                            "relationType": relation_name,
+                            "relatedIdentifier": relation_item.get("id", ""),
+                            "relatedIdentifierType": relation_item.get("id-type", ""),
+                        }
+                    )
+            self._score_dataset_candidate(candidate, context, related_identifiers)
+            candidates.append(candidate)
+        return candidates
+
+    def _fetch_openalex_dataset_candidates(self, context: dict[str, Any]) -> list[dict[str, Any]]:
+        query_text = " ".join(context["title_tokens"][:5]) or context["title"]
+        response = self.session.get(
+            OPENALEX_API_BASE,
+            params=self._with_mailto({"search": query_text, "filter": "type:dataset", "per-page": 6}),
+            timeout=REQUEST_TIMEOUT_SECONDS,
+        )
+        response.raise_for_status()
+        candidates: list[dict[str, Any]] = []
+        for item in response.json().get("results", []):
+            candidate = {
+                "name": item.get("display_name") or "Untitled dataset",
+                "url": (item.get("primary_location") or {}).get("landing_page_url")
+                or item.get("doi")
+                or item.get("id", ""),
+                "source": "openalex",
+                "doi": (item.get("ids") or {}).get("doi", "").replace("https://doi.org/", ""),
+                "year": item.get("publication_year"),
+                "authors": [
+                    authorship.get("author", {}).get("display_name")
+                    for authorship in item.get("authorships", [])
+                    if authorship.get("author", {}).get("display_name")
+                ],
+                "score": 0.34,
+                "evidence": [],
+            }
+            related_identifiers = []
+            ids = item.get("ids") or {}
+            if ids.get("doi"):
+                related_identifiers.append(
+                    {
+                        "relationType": "openalex-match",
+                        "relatedIdentifier": ids["doi"],
+                        "relatedIdentifierType": "DOI",
+                    }
+                )
+            self._score_dataset_candidate(candidate, context, related_identifiers)
+            candidates.append(candidate)
+        return candidates
+
+    def _score_dataset_candidate(
+        self,
+        candidate: dict[str, Any],
+        context: dict[str, Any],
+        related_identifiers: list[dict[str, Any]],
+    ) -> None:
+        evidence = list(candidate.get("evidence", []))
+        score = float(candidate.get("score", 0.0))
+        identifiers = {value.lower() for value in context["identifiers"].values() if value}
+        if context["identifiers"].get("arxiv"):
+            identifiers.add(f"10.48550/arxiv.{context['identifiers']['arxiv'].lower()}")
+
+        for relation in related_identifiers:
+            related_identifier = (relation.get("relatedIdentifier") or "").lower()
+            relation_type = (relation.get("relationType") or "").lower()
+            if related_identifier and any(identifier and identifier in related_identifier for identifier in identifiers):
+                if relation_type in {"issupplementto", "issupplementedby", "issourceof", "isderivedfrom", "ispartof", "haspart"}:
+                    score += 0.34
+                    evidence.append(f"Public metadata links this dataset to the paper via {relation_type or 'relatedIdentifier'}.")
+                elif relation_type in {"references", "isreferencedby", "iscitedby"}:
+                    score += 0.05
+                    evidence.append("Dataset metadata references the paper, but this is only weak evidence.")
+
+        title_similarity = _title_similarity(context["title"], candidate.get("name", ""))
+        if title_similarity >= 0.55:
+            score += 0.12
+            evidence.append("Dataset title is closely aligned with the paper title.")
+
+        author_overlap = [
+            author for author in candidate.get("authors", [])
+            if author and author.lower() in context["author_set"]
+        ]
+        if author_overlap:
+            score += 0.12
+            evidence.append(f"Dataset shares creators with the paper: {', '.join(author_overlap[:2])}.")
+
+        if candidate.get("year") and context.get("year"):
+            try:
+                if abs(int(candidate["year"]) - int(context["year"])) <= 2:
+                    score += 0.05
+                    evidence.append("Dataset was published near the paper year.")
+            except (TypeError, ValueError):
+                pass
+
+        lowered_name = (candidate.get("name") or "").lower()
+        if any(method.lower() in lowered_name for method in context["methods"]):
+            score += 0.05
+            evidence.append("Dataset name overlaps with the paper's method vocabulary.")
+
+        if any(category.lower() in lowered_name for category in context["categories"][:4]):
+            score += 0.03
+            evidence.append("Dataset name overlaps with the paper's topic vocabulary.")
+
+        candidate["score"] = round(min(0.99, score), 3)
+        candidate["evidence"] = _dedupe_strings(evidence)
+
+    def _merge_dataset_entry(self, combined: list[dict[str, Any]], entry: dict[str, Any]) -> None:
+        entry_key = (entry.get("doi") or _normalize_title(entry.get("name", ""))).lower()
+        if not entry_key:
+            return
+        for current in combined:
+            current_key = (current.get("doi") or _normalize_title(current.get("name", ""))).lower()
+            if current_key != entry_key:
+                continue
+            current["score"] = max(current.get("score", 0.0), entry.get("score", 0.0))
+            current["source"] = current.get("source") if current.get("source") == entry.get("source") else f"{current.get('source')}, {entry.get('source')}"
+            current["evidence"] = _dedupe_strings((current.get("evidence") or []) + (entry.get("evidence") or []))
+            if not current.get("url") and entry.get("url"):
+                current["url"] = entry["url"]
+            return
+        combined.append(entry)
 
     def _discover_repositories(
         self,

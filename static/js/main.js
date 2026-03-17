@@ -662,7 +662,16 @@ function formatDatasets(datasets) {
     if (Array.isArray(datasets)) {
         return datasets.map(dataset => {
             if (typeof dataset === 'object' && dataset.name) {
-                return `<span class="tag tag-success">${escapeHtml(dataset.name)}</span>`;
+                return `
+                    <div class="dataset-candidate">
+                        <div class="dataset-topline">
+                            ${dataset.url ? `<a href="${escapeHtml(dataset.url)}" target="_blank" class="dataset-link">${escapeHtml(dataset.name)}</a>` : `<span class="tag tag-success">${escapeHtml(dataset.name)}</span>`}
+                            ${dataset.source ? `<span class="paper-meta-chip">${escapeHtml(dataset.source)}</span>` : ''}
+                            ${dataset.score ? `<span class="paper-meta-chip">score: ${escapeHtml(dataset.score)}</span>` : ''}
+                        </div>
+                        ${dataset.evidence && dataset.evidence.length > 0 ? `<div class="dataset-evidence">${dataset.evidence.map(item => `<div class="signal-line">${escapeHtml(item)}</div>`).join('')}</div>` : ''}
+                    </div>
+                `;
             } else {
                 return `<span class="tag tag-success">${escapeHtml(dataset)}</span>`;
             }

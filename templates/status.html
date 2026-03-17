@@ -131,6 +131,19 @@
                     </div>
 
                     <div class="col-md-6 mb-4">
+                        <div class="card h-100 ${data.datacite_available ? 'border-success' : 'border-danger'}">
+                            <div class="card-body text-center">
+                                <i class="fas fa-database fa-3x mb-3 ${data.datacite_available ? 'text-success' : 'text-danger'}"></i>
+                                <h5 class="card-title">DataCite API</h5>
+                                <p class="card-text">公开数据集 DOI 元数据</p>
+                                <span class="badge ${data.datacite_available ? 'bg-success' : 'bg-danger'} fs-6">
+                                    ${data.datacite_available ? '✓ 可用' : '✗ 不可用'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
                         <div class="card h-100 ${data.github_api_available ? 'border-success' : 'border-danger'}">
                             <div class="card-body text-center">
                                 <i class="fab fa-github fa-3x mb-3 ${data.github_api_available ? 'text-success' : 'text-danger'}"></i>
@@ -157,6 +170,7 @@
                                     <li class="mb-2"><strong>OpenAlex API:</strong> 提供相关论文搜索和学术网络分析</li>
                                     <li class="mb-2"><strong>Semantic Scholar API:</strong> 提供标题匹配、推荐和引用信号</li>
                                     <li class="mb-2"><strong>Crossref API:</strong> 提供DOI和出版元数据补全</li>
+                                    <li class="mb-2"><strong>DataCite API:</strong> 提供公开数据集 DOI 和 related-identifier 元数据</li>
                                     <li class="mb-0"><strong>GitHub API:</strong> 提供代码仓库检索和排序</li>
                                 </ul>
                             </div>

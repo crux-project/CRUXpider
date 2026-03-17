@@ -11,12 +11,12 @@
 
 # CRUXpider
 
-Academic paper analysis from titles, with multi-source paper resolution, confidence scoring, heuristic method/dataset extraction, related-paper ranking, and ranked code discovery for reproducibility workflows.
+Academic paper analysis from titles, with multi-source paper resolution, confidence scoring, public-info-first dataset discovery, related-paper ranking, and ranked code discovery for reproducibility workflows.
 
 ## Highlights
 
 - `Single paper analysis`: multi-source title resolution, venue, PDF, categories, confidence, identifiers, and ranked code candidates
-- `Method and dataset hints`: heuristic extraction from titles, abstracts, and source metadata
+- `Dataset discovery`: public-info-first candidates from DataCite, Crossref, OpenAlex, plus heuristic text extraction
 - `Related papers`: Semantic Scholar + OpenAlex ranking pipeline with explanations from venue, year, topic, method, author, and citation signals, plus grouped research-navigation views
 - `CSV batch mode`: title list in, enriched CSV out
 - `Web UI + JSON API`: simple to use locally or extend in other tooling
@@ -33,7 +33,9 @@ Academic paper analysis from titles, with multi-source paper resolution, confide
 - `Semantic Scholar`
   Source for title match confirmation, citation signals, and recommendations.
 - `Crossref`
-  Source for DOI-oriented bibliographic enrichment.
+  Source for DOI-oriented bibliographic enrichment and public dataset metadata search.
+- `DataCite`
+  Source for public dataset DOI metadata and related-identifier evidence.
 - `GitHub API`
   Source for ranked repository discovery when paper-to-code metadata is unavailable.
 
@@ -128,7 +130,15 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
   "pdf_url": "https://arxiv.org/pdf/1706.03762.pdf",
   "categories": ["cs.CL", "cs.LG"],
   "ai_related": "YES",
-  "datasets": [],
+  "datasets": [
+    {
+      "name": "WMT",
+      "source": "datacite",
+      "score": 0.81,
+      "evidence": ["Public metadata links this dataset to the paper."]
+    }
+  ],
+  "dataset_candidates": [],
   "methods": ["transformer"],
   "confidence": 0.99,
   "matched_sources": ["arxiv", "semantic_scholar"],
@@ -143,6 +153,8 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
 ```
 
 Related-paper responses now include `score`, `signal_count`, `sources`, short `reasons`, and grouped views such as `same_author`, `same_method`, `same_wave`, and `strong_follow_up`.
+
+Dataset responses now prefer public metadata over pure text guessing. CRUXpider queries public scholarly metadata from DataCite, Crossref, and OpenAlex first, then fills gaps with title/abstract/topic heuristics.
 
 ## Running Tests
 
@@ -185,7 +197,7 @@ CRUXpider/
 ## Known Limitations
 
 - Paper title matching is still heuristic and depends on external metadata quality.
-- Method and dataset extraction prefers public metadata and public abstract/title text, but remains heuristic.
+- Dataset discovery prefers public metadata and public abstract/title text, but it still cannot guarantee a complete paper-to-dataset mapping.
 - Repository discovery is ranked GitHub evidence, not a guaranteed paper-to-code ground truth mapping.
 - Some fields may still be empty when upstream APIs omit abstracts or structured metadata.
 

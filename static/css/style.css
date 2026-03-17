@@ -411,6 +411,38 @@ html {
     margin-bottom: 0;
 }
 
+.dataset-candidate {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.dataset-candidate:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.dataset-topline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+    margin-bottom: 0.4rem;
+}
+
+.dataset-link {
+    font-weight: 600;
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.dataset-link:hover {
+    text-decoration: underline;
+}
+
+.dataset-evidence {
+    margin-top: 0.35rem;
+}
+
 /* Loading Spinner */
 .spinner-border {
     width: 3rem;

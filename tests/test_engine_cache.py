@@ -101,6 +101,40 @@ class EngineCacheTestCase(unittest.TestCase):
         self.assertEqual(grouped["same_wave"][0]["title"], "Paper A")
         self.assertEqual(grouped["strong_follow_up"][0]["title"], "Paper B")
 
+    def test_discover_datasets_prefers_public_candidates(self):
+        engine = CRUXpiderEngine()
+        best = PaperCandidate(
+            source="semantic_scholar",
+            source_id="paper-1",
+            title="Attention Is All You Need",
+            year=2017,
+            authors=["Ashish Vaswani"],
+            methods=["transformer"],
+            identifiers={"doi": "10.1000/test", "arxiv": "1706.03762"},
+            title_score=0.98,
+        )
+        merged = MergedPaper(
+            candidates=[best],
+            sources={"semantic_scholar"},
+            identifiers={"doi": "10.1000/test", "arxiv": "1706.03762"},
+            score=0.95,
+        )
+
+        with patch.object(engine, "_fetch_datacite_dataset_candidates", return_value=[{
+            "name": "WMT Dataset",
+            "url": "https://example.com/wmt",
+            "source": "datacite",
+            "score": 0.88,
+            "evidence": ["Public metadata links this dataset to the paper."],
+        }]), patch.object(engine, "_fetch_crossref_dataset_candidates", return_value=[]), patch.object(
+            engine, "_fetch_openalex_dataset_candidates", return_value=[]
+        ):
+            datasets, warning = engine._discover_datasets(best, merged)
+
+        self.assertIsNone(warning)
+        self.assertEqual(datasets[0]["name"], "WMT Dataset")
+        self.assertEqual(datasets[0]["source"], "datacite")
+
 
 if __name__ == "__main__":
     unittest.main()

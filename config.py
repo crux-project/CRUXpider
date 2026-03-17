@@ -45,6 +45,7 @@ SEMANTIC_SCHOLAR_API_BASE = os.getenv(
 SEMANTIC_SCHOLAR_API_KEY = os.getenv("SEMANTIC_SCHOLAR_API_KEY", "")
 CROSSREF_API_BASE = os.getenv("CROSSREF_API_BASE", "https://api.crossref.org")
 CROSSREF_MAILTO = os.getenv("CROSSREF_MAILTO", PYALEX_EMAIL)
+DATACITE_API_BASE = os.getenv("DATACITE_API_BASE", "https://api.datacite.org")
 GITHUB_API_BASE = os.getenv("GITHUB_API_BASE", "https://api.github.com")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 

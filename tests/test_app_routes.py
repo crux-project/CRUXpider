@@ -23,7 +23,8 @@ class AppRoutesTestCase(unittest.TestCase):
             "pdf_url": "https://arxiv.org/pdf/1706.03762.pdf",
             "categories": ["cs.CL", "cs.LG"],
             "ai_related": "YES",
-            "datasets": [],
+            "datasets": [{"name": "WMT", "source": "datacite", "score": 0.81, "evidence": ["Public metadata links this dataset to the paper."]}],
+            "dataset_candidates": [{"name": "WMT", "source": "datacite", "score": 0.81, "evidence": ["Public metadata links this dataset to the paper."]}],
             "methods": [],
             "repository_url": "https://github.com/search?q=attention&type=repositories",
             "warnings": [],
@@ -37,6 +38,7 @@ class AppRoutesTestCase(unittest.TestCase):
                 "openalex": True,
                 "semantic_scholar": True,
                 "crossref": True,
+                "datacite": True,
                 "github_api": True,
                 "github_search_fallback": True,
             },
@@ -90,6 +92,7 @@ class AppRoutesTestCase(unittest.TestCase):
             "categories": [],
             "ai_related": "NO",
             "datasets": [],
+            "dataset_candidates": [],
             "methods": [],
             "repository_url": "N/A",
             "warnings": [],
@@ -117,6 +120,7 @@ class AppRoutesTestCase(unittest.TestCase):
             "openalex": True,
             "semantic_scholar": True,
             "crossref": True,
+            "datacite": True,
             "github_api": True,
             "github_search_fallback": True,
         }
@@ -126,6 +130,7 @@ class AppRoutesTestCase(unittest.TestCase):
         self.assertIn("github_search_fallback", payload)
         self.assertIn("semantic_scholar_available", payload)
         self.assertIn("crossref_available", payload)
+        self.assertIn("datacite_available", payload)
 
     @patch("app.engine.get_source_status")
     def test_health_route(self, mock_status):
@@ -136,6 +141,7 @@ class AppRoutesTestCase(unittest.TestCase):
             "openalex": True,
             "semantic_scholar": True,
             "crossref": True,
+            "datacite": True,
             "github_api": True,
             "github_search_fallback": True,
         }
@@ -145,6 +151,7 @@ class AppRoutesTestCase(unittest.TestCase):
         self.assertEqual(payload["status"], "healthy")
         self.assertIn("semantic_scholar", payload["services"])
         self.assertIn("crossref", payload["services"])
+        self.assertIn("datacite", payload["services"])
 
 
 if __name__ == "__main__":

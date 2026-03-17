@@ -55,6 +55,7 @@ def health_check():
                 "openalex": source_status["openalex"],
                 "semantic_scholar": source_status["semantic_scholar"],
                 "crossref": source_status["crossref"],
+                "datacite": source_status["datacite"],
                 "github_api": source_status["github_api"],
                 "github_search_fallback": source_status["github_search_fallback"],
             },
@@ -77,6 +78,7 @@ def api_status():
             "openalex_available": source_status["openalex"],
             "semantic_scholar_available": source_status["semantic_scholar"],
             "crossref_available": source_status["crossref"],
+            "datacite_available": source_status["datacite"],
             "github_api_available": source_status["github_api"],
             "github_search_fallback": source_status["github_search_fallback"],
         }
