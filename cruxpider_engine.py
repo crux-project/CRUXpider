@@ -401,6 +401,7 @@ class CRUXpiderEngine:
         mode: str = "topic",
         max_papers: int = 5,
     ) -> dict[str, Any]:
+        mode = "area" if mode == "area" else "topic"
         max_papers = max(3, min(max_papers, 8))
         query_profile = self._build_research_profile(
             title=query,
@@ -446,10 +447,30 @@ class CRUXpiderEngine:
         )
         common_datasets = self._aggregate_dataset_assets(representative_papers, limit=8)
         code_repositories = self._aggregate_repository_assets(representative_papers, limit=6)
+        benchmark_assets = self._aggregate_benchmark_assets(representative_papers, limit=6)
         aggregated_profile = self._aggregate_research_profiles(
             [paper.get("research_profile", {}) for paper in representative_papers],
             query_profile=query_profile,
         )
+        if mode == "topic":
+            return {
+                "query": query,
+                "mode": mode,
+                "research_profile": aggregated_profile,
+                "common_methods": common_methods,
+                "common_datasets": common_datasets,
+                "benchmark_assets": benchmark_assets,
+                "code_repositories": code_repositories,
+                "asset_brief": self._build_topic_asset_brief(
+                    query=query,
+                    aggregated_profile=aggregated_profile,
+                    common_datasets=common_datasets,
+                    common_methods=common_methods,
+                    benchmark_assets=benchmark_assets,
+                    code_repositories=code_repositories,
+                ),
+                "total_assets": len(common_methods) + len(common_datasets) + len(benchmark_assets) + len(code_repositories),
+            }
 
         return {
             "query": query,
@@ -460,6 +481,7 @@ class CRUXpiderEngine:
             "common_datasets": common_datasets,
             "code_repositories": code_repositories,
             "reading_path": self._build_reading_path(representative_papers),
+            "subdirection_layers": self._build_subdirection_layers(representative_papers),
             "research_brief": self._build_research_brief(
                 query=query,
                 aggregated_profile=aggregated_profile,
@@ -1918,6 +1940,38 @@ class CRUXpiderEngine:
             },
         }
 
+    def _build_topic_asset_brief(
+        self,
+        query: str,
+        aggregated_profile: dict[str, Any],
+        common_datasets: list[dict[str, Any]],
+        common_methods: list[dict[str, Any]],
+        benchmark_assets: list[dict[str, Any]],
+        code_repositories: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        focus = aggregated_profile.get("summary") or f"{query} asset overview"
+        actions: list[str] = []
+        if common_datasets:
+            actions.append(f"Inspect the strongest dataset candidates around {common_datasets[0]['name']}.")
+        if code_repositories:
+            actions.append("Validate repository quality next: stars alone are not enough for reproducibility.")
+        if benchmark_assets:
+            actions.append("Benchmarks exist here; use them to compare method claims before following code.")
+        if common_methods:
+            actions.append(f"Method family to anchor on: {common_methods[0]['name']}.")
+        if not actions:
+            actions.append("Public asset coverage is still sparse; inspect the underlying papers manually.")
+        return {
+            "headline": focus,
+            "focus": [
+                {"label": "datasets", "count": len(common_datasets)},
+                {"label": "repositories", "count": len(code_repositories)},
+                {"label": "benchmarks", "count": len(benchmark_assets)},
+                {"label": "methods", "count": len(common_methods)},
+            ],
+            "actions": actions[:4],
+        }
+
     def _aggregate_research_profiles(
         self,
         profiles: list[dict[str, Any]],
@@ -2091,6 +2145,74 @@ class CRUXpiderEngine:
                 current["count"] += 1
                 current["score"] = max(current["score"], candidate.get("score", 0.0))
         return sorted(repositories.values(), key=lambda item: (-item["count"], -item["score"], item["name"]))[:limit]
+
+    def _aggregate_benchmark_assets(self, papers: list[dict[str, Any]], limit: int = 6) -> list[dict[str, Any]]:
+        benchmarks: dict[str, dict[str, Any]] = {}
+        for paper in papers:
+            profile = paper.get("research_profile", {})
+            qualifies = (
+                "benchmarking" in (profile.get("tasks") or [])
+                or "benchmark" in (profile.get("artifact_profile") or [])
+            )
+            if not qualifies:
+                continue
+            title = paper.get("title") or ""
+            if not title:
+                continue
+            entry = benchmarks.setdefault(
+                title,
+                {
+                    "name": title,
+                    "count": 0,
+                    "url": paper.get("landing_page_url") or paper.get("pdf_url") or "",
+                    "year": paper.get("year"),
+                },
+            )
+            entry["count"] += 1
+        return sorted(benchmarks.values(), key=lambda item: (-item["count"], item["name"]))[:limit]
+
+    def _build_subdirection_layers(self, papers: list[dict[str, Any]], limit: int = 4) -> list[dict[str, Any]]:
+        layers: dict[str, dict[str, Any]] = {}
+        for paper in papers:
+            profile = paper.get("research_profile", {})
+            name = (
+                (profile.get("tasks") or [None])[0]
+                or (profile.get("domains") or [None])[0]
+            )
+            if not name:
+                continue
+            layer = layers.setdefault(
+                name,
+                {
+                    "name": name,
+                    "count": 0,
+                    "domains": [],
+                    "methods": [],
+                    "papers": [],
+                },
+            )
+            layer["count"] += 1
+            layer["domains"].extend(profile.get("domains", [])[:2])
+            layer["methods"].extend(profile.get("method_families", [])[:2])
+            layer["papers"].append(
+                {
+                    "title": paper.get("title", "Untitled paper"),
+                    "url": paper.get("landing_page_url") or paper.get("pdf_url") or "",
+                }
+            )
+
+        ranked = sorted(layers.values(), key=lambda item: (-item["count"], item["name"]))[:limit]
+        for layer in ranked:
+            layer["domains"] = _dedupe_strings(layer["domains"])[:3]
+            layer["methods"] = _dedupe_strings(layer["methods"])[:3]
+            layer["papers"] = layer["papers"][:3]
+            summary_parts = []
+            if layer["domains"]:
+                summary_parts.append(layer["domains"][0])
+            if layer["methods"]:
+                summary_parts.append(layer["methods"][0])
+            layer["summary"] = " + ".join(summary_parts) if summary_parts else layer["name"]
+        return ranked
 
     def _build_reading_path(self, papers: list[dict[str, Any]]) -> list[dict[str, Any]]:
         ordered = sorted(
