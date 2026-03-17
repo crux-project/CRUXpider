@@ -454,6 +454,19 @@ html {
     margin-bottom: 0.8rem;
 }
 
+.assistant-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+
+.assistant-lead {
+    color: #475569;
+    font-size: 0.95rem;
+    margin-top: 0.85rem;
+}
+
 .assistant-line {
     color: #334155;
     margin-bottom: 0.5rem;
@@ -472,7 +485,16 @@ html {
     font-size: 1.05rem;
     font-weight: 800;
     color: #0f172a;
+}
+
+.route-map-header {
     margin-bottom: 0.8rem;
+}
+
+.route-map-subtitle {
+    color: #475569;
+    font-size: 0.95rem;
+    margin-top: 0.35rem;
 }
 
 .route-map-grid {
@@ -747,6 +769,10 @@ html {
     
     .paper-number {
         margin-bottom: 0.5rem;
+    }
+
+    .route-map-grid {
+        grid-template-columns: 1fr;
     }
 }
 

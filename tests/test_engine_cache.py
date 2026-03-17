@@ -130,6 +130,7 @@ class EngineCacheTestCase(unittest.TestCase):
         )
 
         self.assertIn("chemistry", profile["domains"])
+        self.assertEqual(profile["domains"][0], "chemistry")
         self.assertIn("retrosynthesis", profile["tasks"])
         self.assertIn("reaction prediction", profile["tasks"])
 
@@ -146,6 +147,40 @@ class EngineCacheTestCase(unittest.TestCase):
 
         self.assertIn("biology", profile["domains"])
         self.assertIn("genomics", profile["tasks"])
+
+    def test_aggregate_research_profiles_prefers_query_domain(self):
+        engine = CRUXpiderEngine()
+        aggregated = engine._aggregate_research_profiles(
+            [
+                {
+                    "domains": ["chemistry", "medicine"],
+                    "tasks": ["drug discovery"],
+                    "method_families": ["graph neural network"],
+                    "artifact_profile": ["dataset"],
+                    "community_fit": ["AI4Science", "chem", "bio"],
+                    "reproducibility_level": "medium",
+                },
+                {
+                    "domains": ["biology", "medicine"],
+                    "tasks": ["drug discovery"],
+                    "method_families": ["graph neural network"],
+                    "artifact_profile": ["code"],
+                    "community_fit": ["AI4Science", "bio"],
+                    "reproducibility_level": "low",
+                },
+            ],
+            query_profile={
+                "domains": ["chemistry"],
+                "tasks": ["drug discovery"],
+                "method_families": [],
+                "artifact_profile": [],
+                "community_fit": ["AI4Science", "chem"],
+            },
+        )
+
+        self.assertEqual(aggregated["domains"][0], "chemistry")
+        self.assertIn("chem", aggregated["community_fit"])
+        self.assertNotIn("materials", aggregated["community_fit"])
 
     def test_merge_related_entry_deduplicates_similar_titles(self):
         engine = CRUXpiderEngine()

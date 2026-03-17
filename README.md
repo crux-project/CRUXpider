@@ -138,7 +138,6 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
   "journal_conference": "NeurIPS",
   "pdf_url": "https://arxiv.org/pdf/1706.03762.pdf",
   "categories": ["cs.CL", "cs.LG"],
-  "ai_related": "YES",
   "research_profile": {
     "domains": ["ai"],
     "tasks": ["generation"],
@@ -177,6 +176,8 @@ Related-paper responses now include `score`, `signal_count`, `sources`, short `r
 Dataset responses now prefer public metadata over pure text guessing. CRUXpider queries public scholarly metadata from OpenAIRE ScholeXplorer, DataCite, Crossref, and OpenAlex first, then fills gaps with title-aligned public-text heuristics. Each dataset candidate carries a `confidence_tier`, and entries without a resolvable URL are surfaced as `possible dataset mention` instead of a confirmed dataset link.
 
 Research Profile replaces the old binary `ai_related` framing in the UI. CRUXpider now exposes `domains`, `tasks`, `method_families`, `artifact_profile`, `community_fit`, and `reproducibility_level` so the project can serve broader AI4Science communities such as materials, chemistry, biology, medicine, climate, and robotics.
+
+Explore Assets is now organized as a research route map rather than a flat API dump: it summarizes what the area is about, what to read first, what assets are available, and what to do next.
 
 ## Running Tests
 

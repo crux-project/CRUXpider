@@ -725,10 +725,15 @@ function displayResearchAssetResults(data, resultsId) {
     const labels = {
         zh: {
             assistant_brief: '研究助手摘要',
-            about_area: 'What this area is about',
+            route_intro: '先看整体研究画像，再从起步论文切入，最后检查公开资产和下一步动作。',
+            about_area: '这个方向在研究什么',
             start_here: '建议从这里开始',
-            available_assets: 'What assets are available',
+            available_assets: '这里有哪些研究资产',
             next_actions: '下一步建议',
+            paper_count: '论文',
+            dataset_count: '数据资产',
+            repo_count: '代码仓库',
+            method_count: '方法族',
             representative_papers: '代表论文',
             common_methods: '常见方法族',
             common_datasets: '常见数据资产',
@@ -740,10 +745,15 @@ function displayResearchAssetResults(data, resultsId) {
         },
         en: {
             assistant_brief: 'Research Assistant Brief',
+            route_intro: 'Start with the research profile, read an anchor paper, then inspect public assets and next actions.',
             about_area: 'What this area is about',
             start_here: 'Start Here',
             available_assets: 'What assets are available',
             next_actions: 'Next Actions',
+            paper_count: 'papers',
+            dataset_count: 'dataset assets',
+            repo_count: 'repositories',
+            method_count: 'method families',
             representative_papers: 'Representative Papers',
             common_methods: 'Common Method Families',
             common_datasets: 'Common Dataset Assets',
@@ -908,13 +918,21 @@ function formatResearchBrief(brief, profile, labels, lang) {
     const headline = brief?.headline || profile?.summary || 'N/A';
     const starter = brief?.starter_paper || {};
     const actions = brief?.actions || [];
+    const availability = brief?.availability || {};
     return `
         <div class="assistant-brief">
             <div class="assistant-headline">${escapeHtml(headline)}</div>
+            <div class="assistant-metrics">
+                <span class="paper-meta-chip">${escapeHtml(availability.papers || 0)} ${labels.paper_count}</span>
+                <span class="paper-meta-chip">${escapeHtml(availability.datasets || 0)} ${labels.dataset_count}</span>
+                <span class="paper-meta-chip">${escapeHtml(availability.repositories || 0)} ${labels.repo_count}</span>
+                <span class="paper-meta-chip">${escapeHtml(availability.methods || 0)} ${labels.method_count}</span>
+            </div>
             <div class="info-item">
                 <span class="info-label">${lang === 'en' ? 'Research Profile:' : '研究画像:'}</span>
                 <span class="info-value">${formatResearchProfile(profile)}</span>
             </div>
+            <div class="assistant-lead">${escapeHtml(labels.route_intro)}</div>
             <div class="asset-grid asset-grid-brief">
                 <div class="asset-panel asset-panel-brief">
                     <div class="asset-panel-title">${labels.start_here}</div>
@@ -932,9 +950,16 @@ function formatResearchBrief(brief, profile, labels, lang) {
 }
 
 function formatResearchRouteMap(data, labels) {
+    const routeActions = (data.research_brief?.actions || []).length > 0
+        ? data.research_brief.actions.map(item => `<div class="assistant-line">${escapeHtml(item)}</div>`).join('')
+        : '<div class="assistant-line">N/A</div>';
+    const overview = data.research_profile?.summary || 'N/A';
     return `
         <div class="route-map">
-            <div class="route-map-title">${labels.route_map}</div>
+            <div class="route-map-header">
+                <div class="route-map-title">${labels.route_map}</div>
+                <div class="route-map-subtitle">${escapeHtml(overview)}</div>
+            </div>
             <div class="route-map-grid">
                 <div class="route-step">
                     <div class="route-step-index">1</div>
@@ -967,11 +992,7 @@ function formatResearchRouteMap(data, labels) {
                 <div class="route-step">
                     <div class="route-step-index">4</div>
                     <div class="route-step-title">${labels.next_actions}</div>
-                    <div class="route-step-body">
-                        ${(data.research_brief?.actions || []).length > 0
-                            ? data.research_brief.actions.map(item => `<div class="assistant-line">${escapeHtml(item)}</div>`).join('')
-                            : '<div class="assistant-line">N/A</div>'}
-                    </div>
+                    <div class="route-step-body">${routeActions}</div>
                 </div>
             </div>
         </div>
