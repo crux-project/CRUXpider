@@ -244,7 +244,6 @@ class EngineCacheTestCase(unittest.TestCase):
         self.assertIn("research_brief", result)
         self.assertIn("representative_papers", result)
         self.assertIn("subdirection_layers", result)
-
     def test_merge_related_entry_deduplicates_similar_titles(self):
         engine = CRUXpiderEngine()
         combined = [

@@ -1971,7 +1971,6 @@ class CRUXpiderEngine:
             ],
             "actions": actions[:4],
         }
-
     def _aggregate_research_profiles(
         self,
         profiles: list[dict[str, Any]],

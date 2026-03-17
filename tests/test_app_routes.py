@@ -201,6 +201,7 @@ class AppRoutesTestCase(unittest.TestCase):
                 "headline": "materials + property prediction + graph neural network + reproducibility medium",
                 "focus": [{"label": "datasets", "count": 1}],
                 "actions": ["Start by checking dataset candidates around Materials Project."],
+                "availability": {"papers": 0, "datasets": 1, "methods": 1, "repositories": 1},
             },
             "total_assets": 4,
         }
