@@ -364,6 +364,9 @@ html {
     display: inline-block;
     font-weight: 600;
     margin-bottom: 0.3rem;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .repo-description {
@@ -533,6 +536,9 @@ html {
 
 .route-step-body {
     color: #334155;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .route-assets-block {
@@ -549,10 +555,19 @@ html {
     gap: 0.45rem;
     align-items: center;
     margin-bottom: 0.5rem;
+    min-width: 0;
 }
 
 .asset-line:last-child {
     margin-bottom: 0;
+}
+
+.asset-line > a,
+.asset-line > span {
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .dataset-candidate {
@@ -577,6 +592,9 @@ html {
     font-weight: 600;
     color: var(--primary-color);
     text-decoration: none;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .dataset-link:hover {
