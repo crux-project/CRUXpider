@@ -720,6 +720,9 @@ function displayResearchAssetResults(data, resultsId) {
             subdirections: '子方向分层',
             subdirection_summary: '子方向摘要',
             total_assets: '项资产',
+            discovery_story: '研究概览',
+            asset_snapshot: '资产快照',
+            route_section: '研究路径',
             paper_count: '论文',
             dataset_count: '数据资产',
             repo_count: '代码仓库',
@@ -746,6 +749,9 @@ function displayResearchAssetResults(data, resultsId) {
             subdirections: 'Subdirection Layers',
             subdirection_summary: 'Subdirection Summary',
             total_assets: 'assets',
+            discovery_story: 'Discovery Overview',
+            asset_snapshot: 'Asset Snapshot',
+            route_section: 'Research Route',
             paper_count: 'papers',
             dataset_count: 'dataset assets',
             repo_count: 'repositories',
@@ -768,14 +774,7 @@ function displayResearchAssetResults(data, resultsId) {
                 <h4 class="mb-0"><i class="fas fa-compass me-2"></i>${escapeHtml(data.query)}</h4>
             </div>
             <div class="result-body">
-                ${formatTopicAssetFinder(data, t, lang)}
-                ${formatResearchBrief(data.research_brief, data.research_profile, t, lang)}
-                ${formatResearchRouteMap(data, t)}
-                ${formatSubdirectionLayers(data.subdirection_layers, t)}
-                <div class="mt-4">
-                    <div class="asset-panel-title">${t.representative_papers} (${escapeHtml(data.total)} ${t.papers_found})</div>
-                    ${formatRepresentativePapers(data.representative_papers)}
-                </div>
+                ${formatUnifiedDiscovery(data, t, lang)}
             </div>
         </div>
     `;
@@ -942,6 +941,80 @@ function formatResearchBrief(brief, profile, labels, lang) {
                     <div class="asset-panel-title">${labels.next_actions}</div>
                     ${actions.length > 0 ? actions.map(item => `<div class="assistant-line">${escapeHtml(item)}</div>`).join('') : '<div class="assistant-line">N/A</div>'}
                 </div>
+            </div>
+        </div>
+    `;
+}
+
+function formatUnifiedDiscovery(data, labels, lang) {
+    const assetBrief = data.asset_brief || {};
+    const researchBrief = data.research_brief || {};
+    const starter = researchBrief.starter_paper || {};
+    const nextActions = [...new Set([...(assetBrief.actions || []), ...(researchBrief.actions || [])])];
+    const availability = researchBrief.availability || {};
+    const focus = assetBrief.focus || [];
+
+    return `
+        <div class="assistant-brief">
+            <div class="assistant-headline">${escapeHtml(researchBrief.headline || assetBrief.headline || data.research_profile?.summary || 'N/A')}</div>
+            <div class="assistant-metrics">
+                <span class="paper-meta-chip">${escapeHtml(availability.papers || data.total || 0)} ${labels.paper_count}</span>
+                <span class="paper-meta-chip">${escapeHtml(availability.datasets || data.common_datasets?.length || 0)} ${labels.dataset_count}</span>
+                <span class="paper-meta-chip">${escapeHtml(availability.repositories || data.code_repositories?.length || 0)} ${labels.repo_count}</span>
+                <span class="paper-meta-chip">${escapeHtml(availability.methods || data.common_methods?.length || 0)} ${labels.method_count}</span>
+                <span class="paper-meta-chip">${escapeHtml(data.total_assets || 0)} ${labels.total_assets}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">${lang === 'en' ? 'Research Profile:' : '研究画像:'}</span>
+                <span class="info-value">${formatResearchProfile(data.research_profile)}</span>
+            </div>
+            ${focus.length > 0 ? `
+                <div class="assistant-lead">${escapeHtml(labels.discovery_story)}</div>
+                <div class="assistant-metrics">
+                    ${focus.map(item => `<span class="paper-meta-chip">${escapeHtml(item.count)} ${escapeHtml(item.label)}</span>`).join('')}
+                </div>
+            ` : ''}
+        </div>
+        <div class="discovery-flow">
+            <div class="asset-grid">
+                <div class="asset-panel">
+                    <div class="asset-panel-title">${labels.start_here}</div>
+                    <div class="assistant-line">
+                        ${starter.url ? `<a href="${escapeHtml(starter.url)}" target="_blank" class="dataset-link">${escapeHtml(starter.title || 'N/A')}</a>` : `<span>${escapeHtml(starter.title || 'N/A')}</span>`}
+                    </div>
+                    <div class="assistant-lead">${escapeHtml(labels.reading_path)}</div>
+                    <div>${formatReadingPath(data.reading_path?.slice(0, 3), labels)}</div>
+                </div>
+                <div class="asset-panel">
+                    <div class="asset-panel-title">${labels.asset_snapshot}</div>
+                    <div class="route-assets-block">
+                        <div class="asset-panel-title">${labels.common_methods}</div>
+                        <div>${formatCountTags(data.common_methods)}</div>
+                    </div>
+                    <div class="route-assets-block">
+                        <div class="asset-panel-title">${labels.common_datasets}</div>
+                        <div>${formatDatasetCounts(data.common_datasets)}</div>
+                    </div>
+                    <div class="route-assets-block">
+                        <div class="asset-panel-title">${labels.benchmark_assets}</div>
+                        <div>${formatBenchmarkAssets(data.benchmark_assets)}</div>
+                    </div>
+                    <div class="route-assets-block">
+                        <div class="asset-panel-title">${labels.code_repositories}</div>
+                        <div>${formatRepositoryCounts(data.code_repositories)}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="asset-grid mt-4">
+                <div class="asset-panel">
+                    <div class="asset-panel-title">${labels.route_section}</div>
+                    ${nextActions.length > 0 ? nextActions.map(item => `<div class="assistant-line">${escapeHtml(item)}</div>`).join('') : '<div class="assistant-line">N/A</div>'}
+                </div>
+            </div>
+            ${formatSubdirectionLayers(data.subdirection_layers, labels)}
+            <div class="mt-4">
+                <div class="asset-panel-title">${labels.representative_papers} (${escapeHtml(data.total || 0)} ${labels.papers_found})</div>
+                ${formatRepresentativePapers(data.representative_papers)}
             </div>
         </div>
     `;
