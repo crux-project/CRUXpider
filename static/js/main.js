@@ -720,7 +720,6 @@ function displayResearchAssetResults(data, resultsId) {
             subdirections: '子方向分层',
             subdirection_summary: '子方向摘要',
             total_assets: '项资产',
-            discovery_story: '研究概览',
             asset_snapshot: '资产快照',
             route_section: '研究路径',
             paper_count: '论文',
@@ -749,7 +748,6 @@ function displayResearchAssetResults(data, resultsId) {
             subdirections: 'Subdirection Layers',
             subdirection_summary: 'Subdirection Summary',
             total_assets: 'assets',
-            discovery_story: 'Discovery Overview',
             asset_snapshot: 'Asset Snapshot',
             route_section: 'Research Route',
             paper_count: 'papers',
@@ -952,7 +950,6 @@ function formatUnifiedDiscovery(data, labels, lang) {
     const starter = researchBrief.starter_paper || {};
     const nextActions = [...new Set([...(assetBrief.actions || []), ...(researchBrief.actions || [])])];
     const availability = researchBrief.availability || {};
-    const focus = assetBrief.focus || [];
 
     return `
         <div class="assistant-brief">
@@ -968,12 +965,6 @@ function formatUnifiedDiscovery(data, labels, lang) {
                 <span class="info-label">${lang === 'en' ? 'Research Profile:' : '研究画像:'}</span>
                 <span class="info-value">${formatResearchProfile(data.research_profile)}</span>
             </div>
-            ${focus.length > 0 ? `
-                <div class="assistant-lead">${escapeHtml(labels.discovery_story)}</div>
-                <div class="assistant-metrics">
-                    ${focus.map(item => `<span class="paper-meta-chip">${escapeHtml(item.count)} ${escapeHtml(item.label)}</span>`).join('')}
-                </div>
-            ` : ''}
         </div>
         <div class="discovery-flow">
             <div class="asset-grid">
