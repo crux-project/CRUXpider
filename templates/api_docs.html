@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRUXpider - API文档</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/themes/prism.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-spider me-2"></i>CRUXpider
+            </a>
+            <div class="navbar-nav ms-auto">
+                <a class="nav-link" href="/">首页</a>
+                <a class="nav-link" href="/status">状态</a>
+                <a class="nav-link active" href="/api/docs">API文档</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="row">
+            <div class="col-lg-3">
+                <div class="sticky-top" style="top: 2rem;">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0">目录</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <nav class="nav nav-pills flex-column">
+                                <a class="nav-link" href="#overview">概述</a>
+                                <a class="nav-link" href="#search">搜索论文</a>
+                                <a class="nav-link" href="#relevant">相关论文</a>
+                                <a class="nav-link" href="#batch">批量处理</a>
+                                <a class="nav-link" href="#status">状态检查</a>
+                                <a class="nav-link" href="#health">健康检查</a>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-9">
+                <h1 class="display-5 fw-bold mb-4">CRUXpider API 文档</h1>
+                
+                <section id="overview" class="mb-5">
+                    <h2>概述</h2>
+                    <p>CRUXpider API 提供学术论文分析和相关论文发现功能。所有API端点都返回JSON格式的响应。</p>
+                    <div class="alert alert-info">
+                        <strong>基础URL:</strong> <code>http://localhost:5003</code>
+                    </div>
+                </section>
+
+                <section id="search" class="mb-5">
+                    <h2>搜索论文</h2>
+                    <p>分析单篇论文并获取详细信息。</p>
+                    <div class="card">
+                        <div class="card-header">
+                            <code>POST /api/search_paper</code>
+                        </div>
+                        <div class="card-body">
+                            <h6>请求体：</h6>
+                            <pre><code class="language-json">{
+  "title": "Attention Is All You Need"
+}</code></pre>
+                            
+                            <h6 class="mt-3">响应示例：</h6>
+                            <pre><code class="language-json">{
+  "title": "Attention Is All You Need",
+  "journal": null,
+  "pdf_url": "http://arxiv.org/pdf/1706.03762v7",
+  "categories": ["cs.CL", "cs.LG"],
+  "ai_related": "YES",
+  "paper_id": null,
+  "datasets": [],
+  "methods": [],
+  "repository_url": null,
+  "error": null
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="relevant" class="mb-5">
+                    <h2>查找相关论文</h2>
+                    <p>基于给定论文标题查找相关论文。</p>
+                    <div class="card">
+                        <div class="card-header">
+                            <code>POST /api/find_relevant_papers</code>
+                        </div>
+                        <div class="card-body">
+                            <h6>请求体：</h6>
+                            <pre><code class="language-json">{
+  "title": "Attention Is All You Need",
+  "max_papers": 5
+}</code></pre>
+                            
+                            <h6 class="mt-3">响应示例：</h6>
+                            <pre><code class="language-json">{
+  "papers": [
+    {
+      "title": "BERT: Pre-training of Deep Bidirectional Transformers",
+      "authors": ["Jacob Devlin", "Ming-Wei Chang"],
+      "year": 2018,
+      "url": "https://arxiv.org/abs/1810.04805"
+    }
+  ],
+  "total": 1,
+  "original_title": "Attention Is All You Need"
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="batch" class="mb-5">
+                    <h2>批量处理</h2>
+                    <p>上传CSV文件进行批量论文分析。</p>
+                    <div class="card">
+                        <div class="card-header">
+                            <code>POST /api/batch_process</code>
+                        </div>
+                        <div class="card-body">
+                            <h6>请求：</h6>
+                            <p>使用 <code>multipart/form-data</code> 上传CSV文件，字段名为 <code>file</code>。</p>
+                            <p>CSV文件格式：每行一个论文标题，无标题行。</p>
+                            
+                            <h6 class="mt-3">响应：</h6>
+                            <p>返回包含分析结果的CSV文件下载。</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="status" class="mb-5">
+                    <h2>API状态</h2>
+                    <p>检查各个API服务的可用性。</p>
+                    <div class="card">
+                        <div class="card-header">
+                            <code>GET /api/status</code>
+                        </div>
+                        <div class="card-body">
+                            <h6>响应示例：</h6>
+                            <pre><code class="language-json">{
+  "paperswithcode_available": true,
+  "arxiv_available": true,
+  "pyalex_available": true
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="health" class="mb-5">
+                    <h2>健康检查</h2>
+                    <p>检查应用程序的整体健康状态。</p>
+                    <div class="card">
+                        <div class="card-header">
+                            <code>GET /api/health</code>
+                        </div>
+                        <div class="card-body">
+                            <h6>响应示例：</h6>
+                            <pre><code class="language-json">{
+  "status": "healthy",
+  "timestamp": "2025-05-24T16:53:00.123456",
+  "services": {
+    "paperswithcode": true,
+    "arxiv": true,
+    "pyalex": true,
+    "database": true
+  },
+  "version": "1.0.0"
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.25.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</body>
+</html>

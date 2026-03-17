@@ -1,0 +1,730 @@
+// Main JavaScript for CRUXpider Web App
+
+// 全局变量
+let searchHistory = [];
+let currentAnalysis = null;
+
+// Language switching functionality
+let currentLanguage = localStorage.getItem('cruxpider-language') || 'zh';
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize event listeners
+    initializeEventListeners();
+    
+    // 加载搜索历史
+    loadSearchHistory();
+    
+    // 检查API状态
+    checkAPIStatus();
+    
+    // Initialize language on page load
+    setLanguage(currentLanguage);
+});
+
+// 检查API状态
+async function checkAPIStatus() {
+    try {
+        const response = await fetch('/api/health');
+        const status = await response.json();
+        
+        if (status.status === 'healthy') {
+            showStatusIndicator('healthy', '所有服务正常运行');
+        } else {
+            showStatusIndicator('warning', '部分服务不可用');
+        }
+    } catch (error) {
+        showStatusIndicator('error', '无法连接到服务器');
+    }
+}
+
+// 显示状态指示器
+function showStatusIndicator(type, message) {
+    const indicator = document.createElement('div');
+    indicator.className = `alert alert-${type === 'healthy' ? 'success' : type === 'warning' ? 'warning' : 'danger'} alert-dismissible fade show position-fixed`;
+    indicator.style.top = '20px';
+    indicator.style.right = '20px';
+    indicator.style.zIndex = '9999';
+    indicator.innerHTML = `
+        <i class="fas fa-${type === 'healthy' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'times-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(indicator);
+    
+    // 自动移除
+    setTimeout(() => {
+        if (indicator.parentNode) {
+            indicator.remove();
+        }
+    }, 5000);
+}
+
+// 保存搜索历史
+function saveSearchHistory(title, result) {
+    searchHistory.unshift({
+        title: title,
+        result: result,
+        timestamp: new Date().toISOString()
+    });
+    
+    // 只保留最近50个搜索
+    if (searchHistory.length > 50) {
+        searchHistory = searchHistory.slice(0, 50);
+    }
+    
+    localStorage.setItem('cruxpider_search_history', JSON.stringify(searchHistory));
+    updateSearchHistoryUI();
+}
+
+// 加载搜索历史
+function loadSearchHistory() {
+    const saved = localStorage.getItem('cruxpider_search_history');
+    if (saved) {
+        searchHistory = JSON.parse(saved);
+        updateSearchHistoryUI();
+    }
+}
+
+// 更新搜索历史UI
+function updateSearchHistoryUI() {
+    const historyContainer = document.getElementById('searchHistory');
+    if (!historyContainer) return;
+    
+    if (searchHistory.length === 0) {
+        historyContainer.innerHTML = `
+            <div class="card-header">
+                <h6 class="mb-0" data-zh="最近搜索" data-en="Recent Searches">最近搜索</h6>
+            </div>
+            <div class="card-body text-center text-muted">
+                <i class="fas fa-history fa-2x mb-2"></i>
+                <p data-zh="暂无搜索历史" data-en="No search history">暂无搜索历史</p>
+            </div>
+        `;
+        return;
+    }
+    
+    historyContainer.innerHTML = `
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h6 class="mb-0" data-zh="最近搜索" data-en="Recent Searches">最近搜索</h6>
+            <button class="btn btn-sm btn-outline-danger" onclick="clearAllHistory()" title="清空全部历史">
+                <i class="fas fa-trash-alt"></i>
+                <span data-zh="清空" data-en="Clear All">清空</span>
+            </button>
+        </div>
+        <div class="card-body" style="max-height: 35vh; overflow-y: auto;">
+            ${searchHistory.map((item, index) => `
+                <div class="card mb-2 history-item">
+                    <div class="card-body p-2">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <small class="text-muted">${new Date(item.timestamp).toLocaleString()}</small>
+                                <div class="fw-bold text-truncate" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</div>
+                                ${item.result.ai_related ? `<span class="badge bg-${item.result.ai_related === 'YES' ? 'success' : 'secondary'}">${item.result.ai_related === 'YES' ? 'AI相关' : '非AI'}</span>` : ''}
+                            </div>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary" onclick="loadFromHistory('${escapeHtml(item.title)}')" title="重新搜索">
+                                    <i class="fas fa-redo"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="removeFromHistory(${index})" title="删除此记录">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+    
+    // Update language for new elements
+    if (window.setLanguage) {
+        setLanguage(currentLanguage);
+    }
+}
+
+// 从历史记录加载
+function loadFromHistory(title) {
+    document.getElementById('paperTitle').value = title;
+    scrollToSection('search-section');
+}
+
+// 删除单个历史记录
+function removeFromHistory(index) {
+    const langTexts = window.langTexts || {};
+    const confirmMessage = langTexts.delete_confirm || '确定要删除这条搜索记录吗？';
+    
+    if (confirm(confirmMessage)) {
+        searchHistory.splice(index, 1);
+        localStorage.setItem('cruxpider_search_history', JSON.stringify(searchHistory));
+        updateSearchHistoryUI();
+        
+        // 显示删除成功提示
+        const successMessage = langTexts.record_deleted || '搜索记录已删除';
+        showStatusIndicator('success', successMessage);
+    }
+}
+
+// 清空全部历史记录
+function clearAllHistory() {
+    const langTexts = window.langTexts || {};
+    const confirmMessage = langTexts.clear_all_confirm || '确定要清空所有搜索历史吗？此操作无法撤销。';
+    
+    if (confirm(confirmMessage)) {
+        searchHistory = [];
+        localStorage.removeItem('cruxpider_search_history');
+        updateSearchHistoryUI();
+        
+        // 显示清空成功提示
+        const successMessage = langTexts.history_cleared || '已清空所有搜索历史';
+        showStatusIndicator('success', successMessage);
+    }
+}
+
+// HTML转义函数，防止XSS攻击
+function escapeHtml(text) {
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
+function initializeEventListeners() {
+    // Single paper search form
+    const searchForm = document.getElementById('searchForm');
+    if (searchForm) {
+        searchForm.addEventListener('submit', handlePaperSearch);
+    }
+    
+    // Relevant papers form
+    const relevantForm = document.getElementById('relevantForm');
+    if (relevantForm) {
+        relevantForm.addEventListener('submit', handleRelevantSearch);
+    }
+    
+    // Batch processing form
+    const batchForm = document.getElementById('batchForm');
+    if (batchForm) {
+        batchForm.addEventListener('submit', handleBatchProcessing);
+    }
+}
+
+// Smooth scroll to section
+function scrollToSection(sectionId) {
+    const element = document.getElementById(sectionId);
+    if (element) {
+        element.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'start'
+        });
+    }
+}
+
+// Handle single paper search
+async function handlePaperSearch(e) {
+    e.preventDefault();
+    
+    const titleInput = document.getElementById('paperTitle');
+    const title = titleInput.value.trim();
+    
+    if (!title) {
+        showAlert('请输入论文标题', 'warning');
+        return;
+    }
+    
+    const loadingDiv = document.getElementById('searchLoading');
+    const resultsDiv = document.getElementById('searchResults');
+    
+    // Show loading
+    loadingDiv.style.display = 'block';
+    resultsDiv.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/search_paper', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ title: title })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            displaySearchResults(data);
+            // Save to search history
+            saveSearchHistory(title, data);
+        } else {
+            showAlert(data.error || '搜索失败', 'danger');
+        }
+    } catch (error) {
+        showAlert('网络错误，请重试', 'danger');
+        console.error('Search error:', error);
+    } finally {
+        loadingDiv.style.display = 'none';
+    }
+}
+
+// Display search results
+function displaySearchResults(data) {
+    const resultsDiv = document.getElementById('searchResults');
+    const lang = currentLanguage || 'zh';
+    
+    // Define language-specific texts
+    const texts = {
+        zh: {
+            journal_conference: '期刊/会议:',
+            ai_related: 'AI相关:',
+            pdf_link: 'PDF链接:',
+            repository: '代码仓库:',
+            categories: '分类:',
+            datasets: '数据集:',
+            methods: '方法:',
+            view_pdf: '查看PDF',
+            view_code: '查看代码'
+        },
+        en: {
+            journal_conference: 'Journal/Conference:',
+            ai_related: 'AI Related:',
+            pdf_link: 'PDF Link:',
+            repository: 'Code Repository:',
+            categories: 'Categories:',
+            datasets: 'Datasets:',
+            methods: 'Methods:',
+            view_pdf: 'View PDF',
+            view_code: 'View Code'
+        }
+    };
+    
+    const t = texts[lang];
+    
+    let html = `
+        <div class="card result-card fade-in">
+            <div class="result-header">
+                <h4 class="mb-0"><i class="fas fa-file-alt me-2"></i>${escapeHtml(data.title)}</h4>
+            </div>
+            <div class="result-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <span class="info-label">${t.journal_conference}</span>
+                            <span class="info-value">${escapeHtml(data.journal_conference || data.journal || 'N/A')}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">${t.ai_related}</span>
+                            <span class="info-value">
+                                <span class="tag ${data.ai_related === 'YES' ? 'tag-success' : ''}">${data.ai_related || 'N/A'}</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <span class="info-label">${t.pdf_link}</span>
+                            <span class="info-value">
+                                ${data.pdf_url && data.pdf_url !== 'N/A' ? 
+                                    `<a href="${escapeHtml(data.pdf_url)}" target="_blank"><i class="fas fa-external-link-alt me-1"></i>${t.view_pdf}</a>` : 
+                                    'N/A'
+                                }
+                            </span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">${t.repository}</span>
+                            <span class="info-value">
+                                ${data.repository_url && data.repository_url !== 'N/A' ? 
+                                    `<a href="${escapeHtml(data.repository_url)}" target="_blank"><i class="fab fa-github me-1"></i>${t.view_code}</a>` : 
+                                    'N/A'
+                                }
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                ${data.categories && data.categories.length > 0 ? `
+                <div class="info-item">
+                    <span class="info-label">${t.categories}</span>
+                    <span class="info-value">
+                        ${Array.isArray(data.categories) ? 
+                            data.categories.map(cat => `<span class="tag">${escapeHtml(cat)}</span>`).join('') : 
+                            `<span class="tag">${escapeHtml(data.categories)}</span>`
+                        }
+                    </span>
+                </div>
+                ` : ''}
+                
+                ${data.datasets && data.datasets.length > 0 ? `
+                <div class="info-item">
+                    <span class="info-label">${t.datasets}</span>
+                    <span class="info-value">
+                        ${formatDatasets(data.datasets)}
+                    </span>
+                </div>
+                ` : ''}
+                
+                ${data.methods && data.methods.length > 0 ? `
+                <div class="info-item">
+                    <span class="info-label">${t.methods}</span>
+                    <span class="info-value">
+                        ${Array.isArray(data.methods) ? 
+                            data.methods.map(method => `<span class="tag tag-warning">${escapeHtml(method)}</span>`).join('') : 
+                            `<span class="tag tag-warning">${escapeHtml(data.methods)}</span>`
+                        }
+                    </span>
+                </div>
+                ` : ''}
+            </div>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML = html;
+    resultsDiv.style.display = 'block';
+}
+
+// Handle relevant papers search
+async function handleRelevantSearch(e) {
+    e.preventDefault();
+    
+    const titleInput = document.getElementById('relevantTitle');
+    const maxPapersSelect = document.getElementById('maxPapers');
+    const title = titleInput.value.trim();
+    const maxPapers = maxPapersSelect.value;
+    
+    if (!title) {
+        showAlert('请输入论文标题', 'warning');
+        return;
+    }
+    
+    const loadingDiv = document.getElementById('relevantLoading');
+    const resultsDiv = document.getElementById('relevantResults');
+    
+    // Show loading
+    loadingDiv.style.display = 'block';
+    resultsDiv.style.display = 'none';
+    
+    try {
+        const response = await fetch('/api/find_relevant_papers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ 
+                title: title,
+                max_papers: maxPapers
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            displayRelevantResults(data);
+        } else {
+            showAlert(data.error || '搜索失败', 'danger');
+        }
+    } catch (error) {
+        showAlert('网络错误，请重试', 'danger');
+        console.error('Relevant search error:', error);
+    } finally {
+        loadingDiv.style.display = 'none';
+    }
+}
+
+// Display relevant papers results
+function displayRelevantResults(data) {
+    const resultsDiv = document.getElementById('relevantResults');
+    
+    let html = `
+        <div class="card result-card fade-in">
+            <div class="result-header">
+                <h4 class="mb-0"><i class="fas fa-network-wired me-2"></i>相关论文</h4>
+                <p class="mb-0 mt-2 opacity-75">原论文: ${escapeHtml(data.original_title || '未知')}</p>
+                <small class="opacity-75">找到 ${data.total || 0} 篇相关论文</small>
+            </div>
+            <div class="result-body">
+                ${data.papers && data.papers.length > 0 ? `
+                <div class="paper-list">
+                    ${data.papers.map((paper, index) => `
+                    <div class="paper-item border-bottom pb-3 mb-3">
+                        <div class="d-flex align-items-start">
+                            <span class="paper-number me-3">${index + 1}</span>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">
+                                    ${paper.url ? 
+                                        `<a href="${escapeHtml(paper.url)}" target="_blank" class="text-decoration-none">${escapeHtml(paper.title)}</a>` : 
+                                        escapeHtml(paper.title)
+                                    }
+                                </h6>
+                                ${paper.authors && paper.authors.length > 0 ? 
+                                    `<p class="mb-1 text-muted small">作者: ${paper.authors.map(author => escapeHtml(author)).join(', ')}</p>` : 
+                                    ''
+                                }
+                                ${paper.year ? `<p class="mb-0 text-muted small">年份: ${escapeHtml(paper.year)}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    `).join('')}
+                </div>
+                ` : `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>未找到相关论文，请尝试其他论文标题
+                </div>
+                `}
+            </div>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML = html;
+    resultsDiv.style.display = 'block';
+}
+
+// Handle batch processing
+async function handleBatchProcessing(e) {
+    e.preventDefault();
+    
+    const fileInput = document.getElementById('csvFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        showAlert('请选择CSV文件', 'warning');
+        return;
+    }
+    
+    if (!file.name.endsWith('.csv')) {
+        showAlert('请选择CSV格式文件', 'warning');
+        return;
+    }
+    
+    const loadingDiv = document.getElementById('batchLoading');
+    const resultsDiv = document.getElementById('batchResults');
+    
+    // Show loading
+    loadingDiv.style.display = 'block';
+    resultsDiv.style.display = 'none';
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const response = await fetch('/api/batch_process', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            // File download
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `processed_${new Date().toISOString().slice(0, 19).replace(/:/g, '')}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            
+            displayBatchResults(true);
+        } else {
+            const data = await response.json();
+            showAlert(data.error || '批量处理失败', 'danger');
+        }
+    } catch (error) {
+        showAlert('网络错误，请重试', 'danger');
+        console.error('Batch processing error:', error);
+    } finally {
+        loadingDiv.style.display = 'none';
+    }
+}
+
+// Display batch processing results
+function displayBatchResults(success) {
+    const resultsDiv = document.getElementById('batchResults');
+    
+    let html = `
+        <div class="card result-card fade-in">
+            <div class="result-body text-center">
+                ${success ? `
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle fa-2x mb-3"></i>
+                    <h5>批量处理完成！</h5>
+                    <p class="mb-0">处理结果已自动下载到您的设备</p>
+                </div>
+                ` : `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle fa-2x mb-3"></i>
+                    <h5>批量处理失败</h5>
+                    <p class="mb-0">请检查文件格式并重试</p>
+                </div>
+                `}
+            </div>
+        </div>
+    `;
+    
+    resultsDiv.innerHTML = html;
+    resultsDiv.style.display = 'block';
+}
+
+// Format datasets for display
+function formatDatasets(datasets) {
+    if (!datasets || datasets.length === 0) {
+        return 'N/A';
+    }
+    
+    if (Array.isArray(datasets)) {
+        return datasets.map(dataset => {
+            if (typeof dataset === 'object' && dataset.name) {
+                return `<span class="tag tag-success">${escapeHtml(dataset.name)}</span>`;
+            } else {
+                return `<span class="tag tag-success">${escapeHtml(dataset)}</span>`;
+            }
+        }).join('');
+    } else {
+        return `<span class="tag tag-success">${escapeHtml(datasets)}</span>`;
+    }
+}
+
+// Show alert message
+function showAlert(message, type = 'info') {
+    // Remove existing alerts
+    const existingAlerts = document.querySelectorAll('.temp-alert');
+    existingAlerts.forEach(alert => alert.remove());
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show temp-alert`;
+    alertDiv.innerHTML = `
+        <i class="fas fa-${getAlertIcon(type)} me-2"></i>
+        ${escapeHtml(message)}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    // Insert at the top of the page content
+    const container = document.querySelector('.container');
+    if (container) {
+        container.insertAdjacentElement('afterbegin', alertDiv);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+}
+
+// Get alert icon based on type
+function getAlertIcon(type) {
+    const icons = {
+        'success': 'check-circle',
+        'warning': 'exclamation-triangle',
+        'danger': 'exclamation-circle',
+        'info': 'info-circle'
+    };
+    return icons[type] || 'info-circle';
+}
+
+// Escape HTML to prevent XSS
+function escapeHtml(text) {
+    if (text === null || text === undefined) {
+        return 'N/A';
+    }
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Toggle language between Chinese and English
+function toggleLanguage() {
+    currentLanguage = currentLanguage === 'zh' ? 'en' : 'zh';
+    setLanguage(currentLanguage);
+    localStorage.setItem('cruxpider-language', currentLanguage);
+}
+
+// Set language for the interface
+function setLanguage(lang) {
+    currentLanguage = lang;
+    
+    // Update flag and text
+    const langFlag = document.getElementById('langFlag');
+    const langText = document.getElementById('langText');
+    
+    if (langFlag && langText) {
+        if (lang === 'zh') {
+            langFlag.textContent = '🇺🇸';
+            langText.textContent = 'English';
+        } else {
+            langFlag.textContent = '🇨🇳';
+            langText.textContent = '中文';
+        }
+    }
+    
+    // Update all elements with data-en and data-zh attributes
+    const elements = document.querySelectorAll('[data-en][data-zh]');
+    elements.forEach(element => {
+        const text = lang === 'en' ? element.getAttribute('data-en') : element.getAttribute('data-zh');
+        if (text) {
+            element.textContent = text;
+        }
+    });
+    
+    // Update placeholder texts
+    const placeholderElements = document.querySelectorAll('[data-placeholder-en][data-placeholder-zh]');
+    placeholderElements.forEach(element => {
+        const placeholder = lang === 'en' ? element.getAttribute('data-placeholder-en') : element.getAttribute('data-placeholder-zh');
+        if (placeholder) {
+            element.placeholder = placeholder;
+        }
+    });
+    
+    // Update option texts in select elements
+    const optionElements = document.querySelectorAll('option[data-en][data-zh]');
+    optionElements.forEach(option => {
+        const text = lang === 'en' ? option.getAttribute('data-en') : option.getAttribute('data-zh');
+        if (text) {
+            option.textContent = text;
+        }
+    });
+    
+    // Update loading and status messages
+    updateDynamicTexts(lang);
+}
+
+function updateDynamicTexts(lang) {
+    // Update search result labels
+    const resultLabels = {
+        'journal_conference': lang === 'en' ? 'Journal/Conference:' : '期刊/会议:',
+        'ai_related': lang === 'en' ? 'AI Related:' : 'AI相关:',
+        'pdf_url': lang === 'en' ? 'PDF Link:' : 'PDF链接:',
+        'repository_url': lang === 'en' ? 'Code Repository:' : '代码仓库:',
+        'categories': lang === 'en' ? 'Categories:' : '分类:',
+        'datasets': lang === 'en' ? 'Datasets:' : '数据集:',
+        'methods': lang === 'en' ? 'Methods:' : '方法:',
+        'view_pdf': lang === 'en' ? 'View PDF' : '查看PDF',
+        'view_code': lang === 'en' ? 'View Code' : '查看代码',
+        'no_search_history': lang === 'en' ? 'No search history' : '暂无搜索历史',
+        'searching': lang === 'en' ? 'Searching...' : '搜索中...',
+        'analyzing': lang === 'en' ? 'Analyzing paper information, please wait...' : '正在分析论文信息，请稍候...',
+        'finding_related': lang === 'en' ? 'Finding related papers, please wait...' : '正在查找相关论文，请稍候...',
+        'processing': lang === 'en' ? 'Processing file, please wait...' : '正在批量处理文件，请稍候...',
+        'delete_confirm': lang === 'en' ? 'Are you sure you want to delete this search record?' : '确定要删除这条搜索记录吗？',
+        'clear_all_confirm': lang === 'en' ? 'Are you sure you want to clear all search history? This action cannot be undone.' : '确定要清空所有搜索历史吗？此操作无法撤销。',
+        'record_deleted': lang === 'en' ? 'Search record deleted successfully' : '搜索记录已删除',
+        'history_cleared': lang === 'en' ? 'All search history cleared successfully' : '已清空所有搜索历史'
+    };
+    
+    // Store for use in other functions
+    window.langTexts = resultLabels;
+}
+
+// Override displaySearchResults to use current language
+function updateSearchResultsLanguage(data) {
+    if (!window.langTexts) return;
+    
+    // This will be called when displaying results to use current language
+    const langTexts = window.langTexts;
+    
+    // Update any dynamic content based on current language
+    const loadingElements = document.querySelectorAll('.visually-hidden');
+    loadingElements.forEach(el => {
+        if (el.textContent.includes('搜索中') || el.textContent.includes('Searching')) {
+            el.textContent = langTexts.searching;
+        }
+    });
+}

@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+venv/
+.venv/
+.venv*/
+env/
+
+# Local env
+.env
+.env.*
+!.env.example
+
+# Build artifacts
+build/
+dist/
+*.spec
+
+# Logs and runtime files
+logs/
+*.log
+*.pid
+
+# macOS / editor
+.DS_Store
+.localized
+.idea/
+.vscode/
+.ipynb_checkpoints/
+
+# Data and temporary outputs
+*.tmp
+*.bak
+*.swp
+*.csv
+!requirements.txt
+!docker-compose.yml
+
+# Notebooks and ad-hoc experiments
+*.ipynb
+OneTitleCommandLine.txt
+
+# Local documents not needed for OSS release
+*.pdf
+COMPLETION_REPORT.md
+FEATURES_SUMMARY.md
+FINAL_FIX_REPORT.md
+FINAL_STATUS_REPORT.md
+JOURNAL_CONFERENCE_FIX_REPORT.md
+LANGUAGE_TOGGLE_IMPLEMENTATION.md
+PUBLIC_ACCESS_GUIDE.md
+QUICK_START_GUIDE.md
+SEARCH_HISTORY_AREA_SHORTENING.md
+SEARCH_HISTORY_DELETE_FEATURE.md
+SEARCH_HISTORY_UPDATE.md
+SHARING_GUIDE.md
+UI_FIXES_LOG.md
+
+# Local test and demo files
+test_*.py
+test_*.csv
+!tests/
+!tests/*.py
+app_demo.py
+cruxpider_api.py
+使用说明.md
