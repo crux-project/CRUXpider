@@ -398,10 +398,9 @@ class CRUXpiderEngine:
     def explore_research_assets(
         self,
         query: str,
-        mode: str = "topic",
+        mode: str = "auto",
         max_papers: int = 5,
     ) -> dict[str, Any]:
-        mode = "area" if mode == "area" else "topic"
         max_papers = max(3, min(max_papers, 8))
         query_profile = self._build_research_profile(
             title=query,
@@ -411,6 +410,8 @@ class CRUXpiderEngine:
             repository_candidates=[],
             abstract_text="",
         )
+        requested_mode = mode
+        mode = self._resolve_exploration_mode(query, query_profile, requested_mode)
         seeds = self._search_openalex_free_text(query, max_papers=max_papers)
         representative_papers: list[dict[str, Any]] = []
 
@@ -456,6 +457,7 @@ class CRUXpiderEngine:
             return {
                 "query": query,
                 "mode": mode,
+                "requested_mode": requested_mode,
                 "research_profile": aggregated_profile,
                 "common_methods": common_methods,
                 "common_datasets": common_datasets,
@@ -475,6 +477,7 @@ class CRUXpiderEngine:
         return {
             "query": query,
             "mode": mode,
+            "requested_mode": requested_mode,
             "research_profile": aggregated_profile,
             "representative_papers": representative_papers,
             "common_methods": common_methods,
@@ -492,6 +495,39 @@ class CRUXpiderEngine:
             ),
             "total": len(representative_papers),
         }
+
+    def _resolve_exploration_mode(
+        self,
+        query: str,
+        query_profile: dict[str, Any],
+        requested_mode: str,
+    ) -> str:
+        if requested_mode in {"topic", "area"}:
+            return requested_mode
+        topic_intent_keywords = {
+            "prediction",
+            "planning",
+            "benchmark",
+            "leaderboard",
+            "dataset",
+            "code",
+            "repository",
+            "screening",
+            "retrosynthesis",
+            "segmentation",
+            "classification",
+            "forecast",
+            "property",
+        }
+        normalized_query = _normalize_title(query)
+        query_tokens = set(normalized_query.split())
+        method_count = len(query_profile.get("method_families", []))
+        token_count = len(query_tokens)
+        if method_count or query_tokens & topic_intent_keywords:
+            return "topic"
+        if token_count >= 4:
+            return "topic"
+        return "area"
 
     @lru_cache(maxsize=1)
     def get_source_status(self) -> dict[str, Any]:

@@ -200,14 +200,9 @@ function initializeEventListeners() {
         searchForm.addEventListener('submit', handlePaperSearch);
     }
 
-    const topicAssetForm = document.getElementById('topicAssetForm');
-    if (topicAssetForm) {
-        topicAssetForm.addEventListener('submit', handleTopicAssetSearch);
-    }
-
-    const areaExploreForm = document.getElementById('areaExploreForm');
-    if (areaExploreForm) {
-        areaExploreForm.addEventListener('submit', handleAreaExplore);
+    const assetDiscoveryForm = document.getElementById('assetDiscoveryForm');
+    if (assetDiscoveryForm) {
+        assetDiscoveryForm.addEventListener('submit', handleAssetDiscovery);
     }
     
     // Relevant papers form
@@ -279,25 +274,15 @@ async function handlePaperSearch(e) {
     }
 }
 
-async function handleTopicAssetSearch(e) {
+async function handleAssetDiscovery(e) {
     e.preventDefault();
+    const mode = document.getElementById('assetDiscoveryMode')?.value || 'auto';
     await handleResearchAssetSearch({
-        mode: 'topic',
-        inputId: 'topicQuery',
-        loadingId: 'topicAssetsLoading',
-        resultsId: 'topicAssetsResults',
-        emptyMessage: currentLanguage === 'en' ? 'Please enter a research topic' : '请输入研究主题',
-    });
-}
-
-async function handleAreaExplore(e) {
-    e.preventDefault();
-    await handleResearchAssetSearch({
-        mode: 'area',
-        inputId: 'areaQuery',
-        loadingId: 'areaExploreLoading',
-        resultsId: 'areaExploreResults',
-        emptyMessage: currentLanguage === 'en' ? 'Please enter a research area' : '请输入研究领域',
+        mode,
+        inputId: 'assetDiscoveryQuery',
+        loadingId: 'assetDiscoveryLoading',
+        resultsId: 'assetDiscoveryResults',
+        emptyMessage: currentLanguage === 'en' ? 'Please enter a topic or research area' : '请输入主题或研究领域',
     });
 }
 
@@ -726,6 +711,7 @@ function displayResearchAssetResults(data, resultsId) {
         zh: {
             assistant_brief: '研究助手摘要',
             asset_brief: '资产发现摘要',
+            auto_mode: '自动判断',
             route_intro: '先看整体研究画像，再从起步论文切入，最后检查公开资产和下一步动作。',
             about_area: '这个方向在研究什么',
             start_here: '建议从这里开始',
@@ -752,6 +738,7 @@ function displayResearchAssetResults(data, resultsId) {
         en: {
             assistant_brief: 'Research Assistant Brief',
             asset_brief: 'Asset Finder Brief',
+            auto_mode: 'Auto-selected',
             route_intro: 'Start with the research profile, read an anchor paper, then inspect public assets and next actions.',
             about_area: 'What this area is about',
             start_here: 'Start Here',
@@ -783,6 +770,10 @@ function displayResearchAssetResults(data, resultsId) {
             <div class="card result-card fade-in">
                 <div class="result-header">
                     <h4 class="mb-0"><i class="fas fa-compass me-2"></i>${escapeHtml(data.query)}</h4>
+                    <div class="mt-2">
+                        <span class="paper-meta-chip">${escapeHtml(data.requested_mode === 'auto' ? t.auto_mode : data.requested_mode)}</span>
+                        <span class="paper-meta-chip">${escapeHtml(data.mode)}</span>
+                    </div>
                 </div>
                 <div class="result-body">
                     ${formatResearchBrief(data.research_brief, data.research_profile, t, lang)}
@@ -799,6 +790,10 @@ function displayResearchAssetResults(data, resultsId) {
             <div class="card result-card fade-in">
                 <div class="result-header">
                     <h4 class="mb-0"><i class="fas fa-boxes-stacked me-2"></i>${escapeHtml(data.query)}</h4>
+                    <div class="mt-2">
+                        <span class="paper-meta-chip">${escapeHtml(data.requested_mode === 'auto' ? t.auto_mode : data.requested_mode)}</span>
+                        <span class="paper-meta-chip">${escapeHtml(data.mode)}</span>
+                    </div>
                 </div>
                 <div class="result-body">
                     ${formatTopicAssetFinder(data, t, lang)}

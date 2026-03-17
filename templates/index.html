@@ -28,10 +28,7 @@
                         <a class="nav-link" href="#search" data-en="Paper Lookup" data-zh="论文入口">论文入口</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#topic-assets" data-en="Topic Assets" data-zh="主题资产">主题资产</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#area-explore" data-en="Area Explore" data-zh="领域探索">领域探索</a>
+                        <a class="nav-link" href="#asset-discovery" data-en="Asset Discovery" data-zh="资产发现">资产发现</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="#relevant" data-en="Related Papers" data-zh="相关论文">相关论文</a>
@@ -65,8 +62,8 @@
                         <button class="btn btn-primary btn-lg" onclick="scrollToSection('search')" data-en="Find from a Paper Title" data-zh="从论文标题开始">
                             <i class="fas fa-search me-2"></i><span data-en="Find from a Paper Title" data-zh="从论文标题开始">从论文标题开始</span>
                         </button>
-                        <button class="btn btn-outline-primary btn-lg" onclick="scrollToSection('topic-assets')" data-en="Find Assets for a Topic" data-zh="按主题找资产">
-                            <i class="fas fa-compass me-2"></i><span data-en="Find Assets for a Topic" data-zh="按主题找资产">按主题找资产</span>
+                        <button class="btn btn-outline-primary btn-lg" onclick="scrollToSection('asset-discovery')" data-en="Discover Research Assets" data-zh="发现研究资产">
+                            <i class="fas fa-compass me-2"></i><span data-en="Discover Research Assets" data-zh="发现研究资产">发现研究资产</span>
                         </button>
                     </div>
                 </div>
@@ -94,7 +91,7 @@
                                 <i class="fas fa-database fa-3x text-primary"></i>
                             </div>
                             <h5 class="card-title" data-en="Research Profile" data-zh="研究画像">研究画像</h5>
-                            <p class="card-text text-muted" data-en="Go beyond AI-or-not. Profile domains, tasks, method families, artifacts, and reproducibility signals." data-zh="不再停留在 AI / 非 AI。直接给出领域、任务、方法族、资产类型和可复现性信号。">不再停留在 AI / 非 AI。直接给出领域、任务、方法族、资产类型和可复现性信号。</p>
+                            <p class="card-text text-muted" data-en="Domains, tasks, method families, artifacts, and reproducibility signals." data-zh="直接给出领域、任务、方法族、资产类型和可复现性信号。">直接给出领域、任务、方法族、资产类型和可复现性信号。</p>
                         </div>
                     </div>
                 </div>
@@ -176,73 +173,45 @@
         </div>
     </section>
 
-    <section id="topic-assets" class="py-5 bg-light">
+    <section id="asset-discovery" class="py-5 bg-light">
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-lg-8">
-                    <h2 class="text-center mb-5" data-en="Find Datasets and Code for a Topic" data-zh="按主题找数据集和代码">按主题找数据集和代码</h2>
-                    <p class="text-center text-muted mb-4" data-en="Use this for narrow problems such as retrosynthesis planning or perovskite bandgap prediction. The result focuses on datasets, methods, benchmark assets, and repositories." data-zh="适合较窄的研究问题，比如 retrosynthesis planning 或 perovskite bandgap prediction。结果会聚焦数据集、方法、benchmark 资产和代码仓库。">
-                        适合较窄的研究问题，比如 retrosynthesis planning 或 perovskite bandgap prediction。结果会聚焦数据集、方法、benchmark 资产和代码仓库。
+                    <h2 class="text-center mb-5" data-en="Discover Research Assets" data-zh="发现研究资产">发现研究资产</h2>
+                    <p class="text-center text-muted mb-4" data-en="Use one input for both narrow topics and broad areas. Auto mode chooses asset finder or area map based on the query, and you can override it when needed." data-zh="用一个入口同时处理窄主题和宽领域。Auto 模式会根据查询自动选择资产发现或领域地图，你也可以手动指定。">
+                        用一个入口同时处理窄主题和宽领域。Auto 模式会根据查询自动选择资产发现或领域地图，你也可以手动指定。
                     </p>
                     <div class="card border-0 shadow">
                         <div class="card-body p-4">
-                            <form id="topicAssetForm">
+                            <form id="assetDiscoveryForm">
                                 <div class="mb-3">
-                                    <label for="topicQuery" class="form-label fw-semibold" data-en="Research Topic" data-zh="研究主题">研究主题</label>
-                                    <input type="text" class="form-control form-control-lg" id="topicQuery"
-                                           placeholder="例如：perovskite bandgap prediction" data-placeholder-en="e.g. perovskite bandgap prediction" data-placeholder-zh="例如：perovskite bandgap prediction">
+                                    <label for="assetDiscoveryQuery" class="form-label fw-semibold" data-en="Topic or Research Area" data-zh="主题或研究领域">主题或研究领域</label>
+                                    <input type="text" class="form-control form-control-lg" id="assetDiscoveryQuery"
+                                           placeholder="例如：retrosynthesis planning 或 drug discovery" data-placeholder-en="e.g. retrosynthesis planning or drug discovery" data-placeholder-zh="例如：retrosynthesis planning 或 drug discovery">
+                                </div>
+                                <div class="mb-3">
+                                    <label for="assetDiscoveryMode" class="form-label fw-semibold" data-en="Discovery Mode" data-zh="发现模式">发现模式</label>
+                                    <select class="form-select" id="assetDiscoveryMode">
+                                        <option value="auto" data-en="Auto" data-zh="自动">自动</option>
+                                        <option value="topic" data-en="Asset Finder" data-zh="资产发现">资产发现</option>
+                                        <option value="area" data-en="Area Map" data-zh="领域地图">领域地图</option>
+                                    </select>
                                 </div>
                                 <div class="d-grid">
                                     <button type="submit" class="btn btn-primary btn-lg">
-                                        <i class="fas fa-compass me-2"></i><span data-en="Find Topic Assets" data-zh="发现主题资产">发现主题资产</span>
+                                        <i class="fas fa-compass me-2"></i><span data-en="Discover Assets" data-zh="开始发现">开始发现</span>
                                     </button>
                                 </div>
                             </form>
                         </div>
                     </div>
-                    <div id="topicAssetsLoading" class="text-center mt-4" style="display: none;">
+                    <div id="assetDiscoveryLoading" class="text-center mt-4" style="display: none;">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">搜索中...</span>
                         </div>
-                        <p class="mt-3 text-muted">正在分析研究主题，请稍候...</p>
+                        <p class="mt-3 text-muted">正在发现研究资产，请稍候...</p>
                     </div>
-                    <div id="topicAssetsResults" class="mt-4" style="display: none;"></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="area-explore" class="py-5">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-lg-8">
-                    <h2 class="text-center mb-5" data-en="Explore a Research Area" data-zh="探索一个研究领域">探索一个研究领域</h2>
-                    <p class="text-center text-muted mb-4" data-en="Use this for broader areas such as drug discovery or protein structure generation. The result prioritizes overview, representative papers, reading path, and subdirection layers." data-zh="适合较宽的研究领域，比如 drug discovery 或 protein structure generation。结果会优先给出概览、代表论文、阅读路径和子方向分层。">
-                        适合较宽的研究领域，比如 drug discovery 或 protein structure generation。结果会优先给出概览、代表论文、阅读路径和子方向分层。
-                    </p>
-                    <div class="card border-0 shadow">
-                        <div class="card-body p-4">
-                            <form id="areaExploreForm">
-                                <div class="mb-3">
-                                    <label for="areaQuery" class="form-label fw-semibold" data-en="Research Area" data-zh="研究领域">研究领域</label>
-                                    <input type="text" class="form-control form-control-lg" id="areaQuery"
-                                           placeholder="例如：protein structure generation" data-placeholder-en="e.g. protein structure generation" data-placeholder-zh="例如：protein structure generation">
-                                </div>
-                                <div class="d-grid">
-                                    <button type="submit" class="btn btn-success btn-lg">
-                                        <i class="fas fa-globe me-2"></i><span data-en="Explore Area" data-zh="探索领域">探索领域</span>
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    <div id="areaExploreLoading" class="text-center mt-4" style="display: none;">
-                        <div class="spinner-border text-success" role="status">
-                            <span class="visually-hidden">搜索中...</span>
-                        </div>
-                        <p class="mt-3 text-muted">正在探索研究领域，请稍候...</p>
-                    </div>
-                    <div id="areaExploreResults" class="mt-4" style="display: none;"></div>
+                    <div id="assetDiscoveryResults" class="mt-4" style="display: none;"></div>
                 </div>
             </div>
         </div>

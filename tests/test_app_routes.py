@@ -184,6 +184,7 @@ class AppRoutesTestCase(unittest.TestCase):
         mock_explore.return_value = {
             "query": "perovskite bandgap prediction",
             "mode": "topic",
+            "requested_mode": "auto",
             "research_profile": {
                 "domains": ["materials"],
                 "tasks": ["property prediction"],
@@ -214,6 +215,7 @@ class AppRoutesTestCase(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
         self.assertEqual(payload["mode"], "topic")
+        self.assertEqual(payload["requested_mode"], "auto")
         self.assertEqual(payload["research_profile"]["domains"][0], "materials")
         self.assertIn("asset_brief", payload)
         self.assertIn("benchmark_assets", payload)
