@@ -208,10 +208,11 @@ class EngineCacheTestCase(unittest.TestCase):
         ):
             result = engine.explore_research_assets("materials benchmark", mode="topic", max_papers=3)
 
-        self.assertEqual(result["mode"], "topic")
+        self.assertEqual(result["primary_view"], "topic")
         self.assertIn("asset_brief", result)
         self.assertIn("benchmark_assets", result)
-        self.assertNotIn("representative_papers", result)
+        self.assertIn("representative_papers", result)
+        self.assertIn("research_brief", result)
         self.assertGreaterEqual(result["total_assets"], 1)
 
     def test_explore_research_assets_area_returns_route_map_shape(self):
@@ -240,10 +241,11 @@ class EngineCacheTestCase(unittest.TestCase):
         ):
             result = engine.explore_research_assets("single-cell biology", mode="area", max_papers=3)
 
-        self.assertEqual(result["mode"], "area")
+        self.assertEqual(result["primary_view"], "area")
         self.assertIn("research_brief", result)
         self.assertIn("representative_papers", result)
         self.assertIn("subdirection_layers", result)
+        self.assertIn("asset_brief", result)
 
     def test_explore_research_assets_auto_switches_to_topic_for_task_like_query(self):
         engine = CRUXpiderEngine()
@@ -271,9 +273,9 @@ class EngineCacheTestCase(unittest.TestCase):
         ):
             result = engine.explore_research_assets("retrosynthesis planning", mode="auto", max_papers=3)
 
-        self.assertEqual(result["requested_mode"], "auto")
-        self.assertEqual(result["mode"], "topic")
+        self.assertEqual(result["primary_view"], "topic")
         self.assertIn("asset_brief", result)
+        self.assertIn("research_brief", result)
 
     def test_explore_research_assets_auto_switches_to_area_for_broad_query(self):
         engine = CRUXpiderEngine()
@@ -301,9 +303,9 @@ class EngineCacheTestCase(unittest.TestCase):
         ):
             result = engine.explore_research_assets("drug discovery", mode="auto", max_papers=3)
 
-        self.assertEqual(result["requested_mode"], "auto")
-        self.assertEqual(result["mode"], "area")
+        self.assertEqual(result["primary_view"], "area")
         self.assertIn("research_brief", result)
+        self.assertIn("asset_brief", result)
     def test_merge_related_entry_deduplicates_similar_titles(self):
         engine = CRUXpiderEngine()
         combined = [

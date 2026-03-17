@@ -276,9 +276,8 @@ async function handlePaperSearch(e) {
 
 async function handleAssetDiscovery(e) {
     e.preventDefault();
-    const mode = document.getElementById('assetDiscoveryMode')?.value || 'auto';
     await handleResearchAssetSearch({
-        mode,
+        mode: 'auto',
         inputId: 'assetDiscoveryQuery',
         loadingId: 'assetDiscoveryLoading',
         resultsId: 'assetDiscoveryResults',
@@ -711,7 +710,6 @@ function displayResearchAssetResults(data, resultsId) {
         zh: {
             assistant_brief: '研究助手摘要',
             asset_brief: '资产发现摘要',
-            auto_mode: '自动判断',
             route_intro: '先看整体研究画像，再从起步论文切入，最后检查公开资产和下一步动作。',
             about_area: '这个方向在研究什么',
             start_here: '建议从这里开始',
@@ -738,7 +736,6 @@ function displayResearchAssetResults(data, resultsId) {
         en: {
             assistant_brief: 'Research Assistant Brief',
             asset_brief: 'Asset Finder Brief',
-            auto_mode: 'Auto-selected',
             route_intro: 'Start with the research profile, read an anchor paper, then inspect public assets and next actions.',
             about_area: 'What this area is about',
             start_here: 'Start Here',
@@ -765,41 +762,23 @@ function displayResearchAssetResults(data, resultsId) {
     };
     const t = labels[lang];
 
-    const html = data.mode === 'area'
-        ? `
-            <div class="card result-card fade-in">
-                <div class="result-header">
-                    <h4 class="mb-0"><i class="fas fa-compass me-2"></i>${escapeHtml(data.query)}</h4>
-                    <div class="mt-2">
-                        <span class="paper-meta-chip">${escapeHtml(data.requested_mode === 'auto' ? t.auto_mode : data.requested_mode)}</span>
-                        <span class="paper-meta-chip">${escapeHtml(data.mode)}</span>
-                    </div>
-                </div>
-                <div class="result-body">
-                    ${formatResearchBrief(data.research_brief, data.research_profile, t, lang)}
-                    ${formatResearchRouteMap(data, t)}
-                    ${formatSubdirectionLayers(data.subdirection_layers, t)}
-                    <div class="mt-4">
-                        <div class="asset-panel-title">${t.representative_papers} (${escapeHtml(data.total)} ${t.papers_found})</div>
-                        ${formatRepresentativePapers(data.representative_papers)}
-                    </div>
+    const html = `
+        <div class="card result-card fade-in">
+            <div class="result-header">
+                <h4 class="mb-0"><i class="fas fa-compass me-2"></i>${escapeHtml(data.query)}</h4>
+            </div>
+            <div class="result-body">
+                ${formatTopicAssetFinder(data, t, lang)}
+                ${formatResearchBrief(data.research_brief, data.research_profile, t, lang)}
+                ${formatResearchRouteMap(data, t)}
+                ${formatSubdirectionLayers(data.subdirection_layers, t)}
+                <div class="mt-4">
+                    <div class="asset-panel-title">${t.representative_papers} (${escapeHtml(data.total)} ${t.papers_found})</div>
+                    ${formatRepresentativePapers(data.representative_papers)}
                 </div>
             </div>
-        `
-        : `
-            <div class="card result-card fade-in">
-                <div class="result-header">
-                    <h4 class="mb-0"><i class="fas fa-boxes-stacked me-2"></i>${escapeHtml(data.query)}</h4>
-                    <div class="mt-2">
-                        <span class="paper-meta-chip">${escapeHtml(data.requested_mode === 'auto' ? t.auto_mode : data.requested_mode)}</span>
-                        <span class="paper-meta-chip">${escapeHtml(data.mode)}</span>
-                    </div>
-                </div>
-                <div class="result-body">
-                    ${formatTopicAssetFinder(data, t, lang)}
-                </div>
-            </div>
-        `;
+        </div>
+    `;
 
     resultsDiv.innerHTML = html;
     resultsDiv.style.display = 'block';
