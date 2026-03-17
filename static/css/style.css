@@ -32,6 +32,15 @@ html {
 .navbar-brand {
     font-size: 1.5rem;
     font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+}
+
+.brand-logo {
+    width: 1.35rem;
+    height: 1.35rem;
+    object-fit: contain;
+    vertical-align: middle;
 }
 
 /* Hero Section */
@@ -156,7 +165,10 @@ html {
     box-shadow: 0 20px 40px rgba(79, 70, 229, 0.4) !important;
 }
 
-.academic-research-icon .fas {
+.hero-logo {
+    width: 5.5rem;
+    height: 5.5rem;
+    object-fit: contain;
     animation: float 3s ease-in-out infinite;
 }
 
