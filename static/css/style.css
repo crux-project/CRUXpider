@@ -443,6 +443,30 @@ html {
     margin-top: 0.35rem;
 }
 
+.dataset-tier {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.dataset-tier-strong {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.dataset-tier-medium {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.dataset-tier-weak {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
 /* Loading Spinner */
 .spinner-border {
     width: 3rem;

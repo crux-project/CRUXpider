@@ -135,6 +135,7 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
       "name": "WMT",
       "source": "datacite",
       "score": 0.81,
+      "confidence_tier": "strong",
       "evidence": ["Public metadata links this dataset to the paper."]
     }
   ],
@@ -154,7 +155,7 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
 
 Related-paper responses now include `score`, `signal_count`, `sources`, short `reasons`, and grouped views such as `same_author`, `same_method`, `same_wave`, and `strong_follow_up`.
 
-Dataset responses now prefer public metadata over pure text guessing. CRUXpider queries public scholarly metadata from DataCite, Crossref, and OpenAlex first, then fills gaps with title/abstract/topic heuristics.
+Dataset responses now prefer public metadata over pure text guessing. CRUXpider queries public scholarly metadata from DataCite, Crossref, and OpenAlex first, then fills gaps with title-aligned public-text heuristics. Each dataset candidate also carries a `confidence_tier` so the UI can distinguish stronger evidence from weaker hints.
 
 ## Running Tests
 

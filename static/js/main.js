@@ -668,6 +668,7 @@ function formatDatasets(datasets) {
                             ${dataset.url ? `<a href="${escapeHtml(dataset.url)}" target="_blank" class="dataset-link">${escapeHtml(dataset.name)}</a>` : `<span class="tag tag-success">${escapeHtml(dataset.name)}</span>`}
                             ${dataset.source ? `<span class="paper-meta-chip">${escapeHtml(dataset.source)}</span>` : ''}
                             ${dataset.score ? `<span class="paper-meta-chip">score: ${escapeHtml(dataset.score)}</span>` : ''}
+                            <span class="dataset-tier dataset-tier-${escapeHtml(getDatasetTier(dataset))}">${escapeHtml(getDatasetTierLabel(dataset))}</span>
                         </div>
                         ${dataset.evidence && dataset.evidence.length > 0 ? `<div class="dataset-evidence">${dataset.evidence.map(item => `<div class="signal-line">${escapeHtml(item)}</div>`).join('')}</div>` : ''}
                     </div>
@@ -679,6 +680,19 @@ function formatDatasets(datasets) {
     } else {
         return `<span class="tag tag-success">${escapeHtml(datasets)}</span>`;
     }
+}
+
+function getDatasetTier(dataset) {
+    return dataset.confidence_tier || 'weak';
+}
+
+function getDatasetTierLabel(dataset) {
+    const lang = currentLanguage || 'zh';
+    const labels = {
+        zh: { strong: '强证据', medium: '中证据', weak: '弱证据' },
+        en: { strong: 'Strong', medium: 'Medium', weak: 'Weak' },
+    };
+    return labels[lang][getDatasetTier(dataset)] || labels[lang].weak;
 }
 
 function formatConfidence(confidence) {

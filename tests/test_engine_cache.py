@@ -49,6 +49,20 @@ class EngineCacheTestCase(unittest.TestCase):
         self.assertIn("imagenet", datasets)
         self.assertIn("cifar-10", datasets)
 
+    def test_filtered_heuristic_datasets_prefers_title_aligned_terms(self):
+        engine = CRUXpiderEngine()
+        best = PaperCandidate(
+            source="semantic_scholar",
+            source_id="paper-1",
+            title="Microsoft COCO: Common Objects in Context",
+            datasets=["imagenet", "coco"],
+        )
+        merged = MergedPaper(candidates=[best], sources={"semantic_scholar"}, identifiers={}, score=0.9)
+
+        heuristics = engine._filtered_heuristic_datasets(best, merged)
+
+        self.assertEqual(heuristics, ["coco"])
+
     def test_merge_related_entry_deduplicates_similar_titles(self):
         engine = CRUXpiderEngine()
         combined = [
@@ -125,6 +139,7 @@ class EngineCacheTestCase(unittest.TestCase):
             "url": "https://example.com/wmt",
             "source": "datacite",
             "score": 0.88,
+            "confidence_tier": "strong",
             "evidence": ["Public metadata links this dataset to the paper."],
         }]), patch.object(engine, "_fetch_crossref_dataset_candidates", return_value=[]), patch.object(
             engine, "_fetch_openalex_dataset_candidates", return_value=[]
@@ -134,6 +149,7 @@ class EngineCacheTestCase(unittest.TestCase):
         self.assertIsNone(warning)
         self.assertEqual(datasets[0]["name"], "WMT Dataset")
         self.assertEqual(datasets[0]["source"], "datacite")
+        self.assertEqual(datasets[0]["confidence_tier"], "strong")
 
 
 if __name__ == "__main__":
