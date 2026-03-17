@@ -244,6 +244,66 @@ class EngineCacheTestCase(unittest.TestCase):
         self.assertIn("research_brief", result)
         self.assertIn("representative_papers", result)
         self.assertIn("subdirection_layers", result)
+
+    def test_explore_research_assets_auto_switches_to_topic_for_task_like_query(self):
+        engine = CRUXpiderEngine()
+        representative = {
+            "title": "Retrosynthesis planning with graph models",
+            "year": 2024,
+            "confidence": 0.8,
+            "citation_count": 10,
+            "repository_candidates": [],
+            "datasets": [],
+            "research_profile": {
+                "domains": ["chemistry"],
+                "tasks": ["retrosynthesis"],
+                "method_families": ["graph neural network"],
+                "artifact_profile": ["code"],
+                "community_fit": ["AI4Science", "chem"],
+                "reproducibility_level": "low",
+                "summary": "chemistry + retrosynthesis + graph neural network + reproducibility low",
+            },
+            "landing_page_url": "https://example.com/paper",
+        }
+
+        with patch.object(engine, "_search_openalex_free_text", return_value=[{"title": "Retrosynthesis planning with graph models", "citation_count": 10}]), patch.object(
+            engine, "analyze_single_paper", return_value=representative
+        ):
+            result = engine.explore_research_assets("retrosynthesis planning", mode="auto", max_papers=3)
+
+        self.assertEqual(result["requested_mode"], "auto")
+        self.assertEqual(result["mode"], "topic")
+        self.assertIn("asset_brief", result)
+
+    def test_explore_research_assets_auto_switches_to_area_for_broad_query(self):
+        engine = CRUXpiderEngine()
+        representative = {
+            "title": "Drug discovery overview",
+            "year": 2024,
+            "confidence": 0.8,
+            "citation_count": 10,
+            "repository_candidates": [],
+            "datasets": [],
+            "research_profile": {
+                "domains": ["chemistry", "medicine"],
+                "tasks": ["drug discovery"],
+                "method_families": [],
+                "artifact_profile": [],
+                "community_fit": ["AI4Science", "chem", "bio"],
+                "reproducibility_level": "low",
+                "summary": "chemistry + drug discovery + reproducibility low",
+            },
+            "landing_page_url": "https://example.com/paper",
+        }
+
+        with patch.object(engine, "_search_openalex_free_text", return_value=[{"title": "Drug discovery overview", "citation_count": 10}]), patch.object(
+            engine, "analyze_single_paper", return_value=representative
+        ):
+            result = engine.explore_research_assets("drug discovery", mode="auto", max_papers=3)
+
+        self.assertEqual(result["requested_mode"], "auto")
+        self.assertEqual(result["mode"], "area")
+        self.assertIn("research_brief", result)
     def test_merge_related_entry_deduplicates_similar_titles(self):
         engine = CRUXpiderEngine()
         combined = [

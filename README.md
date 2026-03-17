@@ -17,8 +17,7 @@ AI4Science research asset discovery from paper titles, topics, and research area
 
 - `Research Profile`: structured fields for domains, tasks, method families, artifact types, community fit, and reproducibility
 - `Single paper analysis`: multi-source title resolution, venue, PDF, categories, confidence, identifiers, and ranked code candidates
-- `Topic asset finder`: for narrow tasks, return datasets, methods, benchmark assets, and ranked repositories
-- `Area exploration`: for broader fields, return a research route map with overview, representative papers, reading path, and subdirection layers
+- `Unified asset discovery`: one discovery entry for both narrow tasks and broad areas, with auto mode plus optional asset-finder / area-map overrides
 - `Dataset discovery`: public-info-first candidates from OpenAIRE ScholeXplorer, DataCite, Crossref, OpenAlex, plus heuristic text extraction
 - `Related papers`: Semantic Scholar + OpenAlex ranking pipeline with explanations from venue, year, topic, method, author, and citation signals, plus grouped research-navigation views
 - `CSV batch mode`: title list in, enriched CSV out
@@ -169,8 +168,10 @@ Dataset responses now prefer public metadata over pure text guessing. CRUXpider 
 
 Research Profile replaces the old binary `ai_related` framing in the UI. CRUXpider now exposes `domains`, `tasks`, `method_families`, `artifact_profile`, `community_fit`, and `reproducibility_level` so the project can serve broader AI4Science communities such as materials, chemistry, biology, medicine, climate, and robotics.
 
-`POST /api/explore_assets` now has two distinct product modes:
+`POST /api/explore_assets` now powers one unified discovery entry in the UI. It supports three request modes:
 
+- `mode=auto`
+  Picks the best view from the query itself. Task-like queries tend to route to asset finder; broader fields tend to route to area map.
 - `mode=topic`
   Returns an asset finder for narrow tasks such as `retrosynthesis planning`, focused on datasets, methods, benchmark assets, and repositories.
 - `mode=area`
