@@ -5,4 +5,5 @@ pandas==2.0.3
 arxiv==1.4.8
 pyalex==0.13
 requests==2.31.0
+chardet==5.2.0
 gunicorn==21.2.0

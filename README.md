@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="docs/assets/banner.svg" alt="CRUXpider banner" width="100%">
+</p>
+
+<p align="center">
+  <a href="./LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-0f766e.svg"></a>
+  <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-1d4ed8.svg">
+  <img alt="Flask" src="https://img.shields.io/badge/backend-Flask-111827.svg">
+  <img alt="Status" src="https://img.shields.io/badge/status-public%20release-f59e0b.svg">
+</p>
+
 # CRUXpider
 
 CRUXpider is a lightweight academic paper analysis platform for title-first research workflows. Give it a paper title, and it helps you retrieve venue metadata, PDF links, related papers, AI relevance signals, and a practical code search fallback for reproducibility.
@@ -164,6 +175,8 @@ CRUXpider/
 ## Release
 
 For the first public release checklist, see [PUBLISH_CHECKLIST.md](/Users/anthonyche/Desktop/CRUXpider/PUBLISH_CHECKLIST.md).
+
+For the GitHub release draft, see [GITHUB_RELEASE_v0.1.0.md](/Users/anthonyche/Desktop/CRUXpider/GITHUB_RELEASE_v0.1.0.md).
 
 ## License
 
