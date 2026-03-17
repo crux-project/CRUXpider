@@ -66,6 +66,14 @@ TASK_KEYWORDS = {
     "benchmarking": ["benchmark", "challenge", "leaderboard", "evaluation suite"],
     "structure prediction": ["structure prediction", "folding", "conformation"],
     "generation": ["generation", "generative", "synthesis"],
+    "molecular property prediction": ["molecular property prediction", "admet", "solubility", "toxicity", "affinity prediction"],
+    "reaction prediction": ["reaction prediction", "reaction outcome", "reaction yield"],
+    "drug discovery": ["drug discovery", "virtual screening", "hit discovery", "lead optimization"],
+    "genomics": ["gene expression", "genome", "genomic", "variant effect", "single-cell", "transcriptomics"],
+    "protein modeling": ["protein function", "protein design", "protein engineering", "antibody design"],
+    "diagnosis": ["diagnosis", "diagnostic", "detection", "screening", "triage"],
+    "prognosis": ["prognosis", "risk prediction", "survival analysis", "outcome prediction"],
+    "medical report generation": ["report generation", "clinical report", "radiology report"],
 }
 METHOD_FAMILY_KEYWORDS = {
     "transformer": ["transformer", "bert", "gpt", "vision transformer"],

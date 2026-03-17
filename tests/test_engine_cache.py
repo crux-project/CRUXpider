@@ -116,6 +116,36 @@ class EngineCacheTestCase(unittest.TestCase):
 
         self.assertIn("medicine", profile["domains"])
         self.assertIn("bio", profile["community_fit"])
+        self.assertIn("diagnosis", profile["tasks"])
+
+    def test_build_research_profile_infers_chemistry_tasks(self):
+        engine = CRUXpiderEngine()
+        profile = engine._build_research_profile(
+            title="Retrosynthesis planning for reaction prediction with graph models",
+            categories=["chemistry"],
+            methods=["graph neural network"],
+            datasets=[],
+            repository_candidates=[],
+            abstract_text="We study reaction prediction and retrosynthesis planning for organic chemistry.",
+        )
+
+        self.assertIn("chemistry", profile["domains"])
+        self.assertIn("retrosynthesis", profile["tasks"])
+        self.assertIn("reaction prediction", profile["tasks"])
+
+    def test_build_research_profile_infers_biology_tasks(self):
+        engine = CRUXpiderEngine()
+        profile = engine._build_research_profile(
+            title="Single-cell gene expression modeling with transformers",
+            categories=["bioinformatics"],
+            methods=["transformer"],
+            datasets=[],
+            repository_candidates=[],
+            abstract_text="We model transcriptomics and genomic signals from single-cell experiments.",
+        )
+
+        self.assertIn("biology", profile["domains"])
+        self.assertIn("genomics", profile["tasks"])
 
     def test_merge_related_entry_deduplicates_similar_titles(self):
         engine = CRUXpiderEngine()

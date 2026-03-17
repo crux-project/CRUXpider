@@ -215,6 +215,7 @@ class AppRoutesTestCase(unittest.TestCase):
         payload = response.get_json()
         self.assertEqual(payload["mode"], "topic")
         self.assertEqual(payload["research_profile"]["domains"][0], "materials")
+        self.assertIn("research_brief", payload)
 
 
 if __name__ == "__main__":
