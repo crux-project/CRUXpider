@@ -4,13 +4,13 @@ import logging
 import io
 import os
 import tempfile
+import csv
 from datetime import datetime
 from functools import lru_cache
 from typing import Any
 from urllib.parse import quote_plus
 
 import arxiv
-import pandas as pd
 import pyalex
 import requests
 from flask import Flask, jsonify, render_template, request, send_file
@@ -362,21 +362,34 @@ def batch_process():
 
     try:
         upload.save(input_path)
-        papers_df = pd.read_csv(input_path, header=None, names=["PaperTitle"]).dropna()
-        if len(papers_df) > MAX_BATCH_SIZE:
+        titles = []
+        with open(input_path, newline="", encoding="utf-8") as handle:
+            reader = csv.reader(handle)
+            for row in reader:
+                if not row:
+                    continue
+                title = str(row[0]).strip()
+                if title:
+                    titles.append(title)
+
+        if len(titles) > MAX_BATCH_SIZE:
             return (
                 jsonify({"error": f"单次批量处理最多支持 {MAX_BATCH_SIZE} 篇论文"}),
                 400,
             )
 
         rows = []
-        for _, row in papers_df.iterrows():
-            title = str(row["PaperTitle"]).strip()
+        for title in titles:
             rows.append(analyzer.analyze_single_paper(title))
 
-        buffer = io.BytesIO()
-        pd.DataFrame(rows).to_csv(buffer, index=False)
-        buffer.seek(0)
+        text_buffer = io.StringIO()
+        fieldnames = list(rows[0].keys()) if rows else ["title"]
+        writer = csv.DictWriter(text_buffer, fieldnames=fieldnames)
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+
+        buffer = io.BytesIO(text_buffer.getvalue().encode("utf-8"))
         return send_file(
             buffer,
             as_attachment=True,

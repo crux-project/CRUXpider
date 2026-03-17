@@ -156,20 +156,22 @@ html {
 }
 
 /* Academic Research Icon */
-.academic-research-icon {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.academic-research-icon:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 20px 40px rgba(79, 70, 229, 0.4) !important;
+.hero-mark {
+    width: min(100%, 340px);
+    padding: 1rem 0.5rem;
+    transition: transform 0.3s ease;
 }
 
 .hero-logo {
-    width: 5.5rem;
-    height: 5.5rem;
+    width: 7rem;
+    height: 7rem;
     object-fit: contain;
     animation: float 3s ease-in-out infinite;
+    filter: drop-shadow(0 16px 36px rgba(8, 17, 27, 0.35));
+}
+
+.hero-mark:hover {
+    transform: translateY(-5px);
 }
 
 @keyframes float {
