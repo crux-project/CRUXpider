@@ -301,6 +301,88 @@ html {
     background: var(--warning-color);
 }
 
+.tag-confidence {
+    background: #0f766e;
+}
+
+.tag-source {
+    background: #475569;
+}
+
+.signal-line {
+    padding: 0.45rem 0.7rem;
+    margin-bottom: 0.45rem;
+    border-radius: 0.75rem;
+    background: #eef2ff;
+    color: #3730a3;
+    font-size: 0.92rem;
+}
+
+.warning-line {
+    padding: 0.45rem 0.7rem;
+    margin-bottom: 0.45rem;
+    border-radius: 0.75rem;
+    background: #fff7ed;
+    color: #9a3412;
+    font-size: 0.92rem;
+}
+
+.repo-candidate {
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.9rem;
+    background: #ffffff;
+}
+
+.repo-candidate:last-child {
+    margin-bottom: 0;
+}
+
+.repo-topline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+    margin-bottom: 0.35rem;
+}
+
+.repo-rank,
+.repo-score,
+.paper-meta-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #334155;
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.repo-link {
+    display: inline-block;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.repo-description {
+    color: #64748b;
+    font-size: 0.92rem;
+    margin-bottom: 0.45rem;
+}
+
+.paper-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.paper-reasons,
+.repo-reasons {
+    margin-top: 0.45rem;
+}
+
 /* Loading Spinner */
 .spinner-border {
     width: 3rem;

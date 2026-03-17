@@ -278,24 +278,48 @@ function displaySearchResults(data) {
         zh: {
             journal_conference: '期刊/会议:',
             ai_related: 'AI相关:',
+            confidence: '置信度:',
+            matched_sources: '匹配来源:',
+            identifiers: '论文标识:',
             pdf_link: 'PDF链接:',
             repository: '代码仓库:',
+            repository_candidates: '候选代码仓库:',
             categories: '分类:',
             datasets: '数据集:',
             methods: '方法:',
+            resolution_notes: '解析依据:',
+            warnings: '提示:',
             view_pdf: '查看PDF',
-            view_code: '查看代码'
+            view_code: '查看代码',
+            best_match: '最佳匹配',
+            score: '分数',
+            reasons: '推荐理由',
+            source_label: '来源',
+            year: '年份',
+            no_related: '未找到相关论文，请尝试其他论文标题'
         },
         en: {
             journal_conference: 'Journal/Conference:',
             ai_related: 'AI Related:',
+            confidence: 'Confidence:',
+            matched_sources: 'Matched Sources:',
+            identifiers: 'Identifiers:',
             pdf_link: 'PDF Link:',
             repository: 'Code Repository:',
+            repository_candidates: 'Repository Candidates:',
             categories: 'Categories:',
             datasets: 'Datasets:',
             methods: 'Methods:',
+            resolution_notes: 'Resolution Evidence:',
+            warnings: 'Warnings:',
             view_pdf: 'View PDF',
-            view_code: 'View Code'
+            view_code: 'View Code',
+            best_match: 'Best Match',
+            score: 'Score',
+            reasons: 'Why recommended',
+            source_label: 'Sources',
+            year: 'Year',
+            no_related: 'No related papers found. Try another title.'
         }
     };
     
@@ -319,6 +343,12 @@ function displaySearchResults(data) {
                                 <span class="tag ${data.ai_related === 'YES' ? 'tag-success' : ''}">${data.ai_related || 'N/A'}</span>
                             </span>
                         </div>
+                        <div class="info-item">
+                            <span class="info-label">${t.confidence}</span>
+                            <span class="info-value">
+                                <span class="tag tag-confidence">${formatConfidence(data.confidence)}</span>
+                            </span>
+                        </div>
                     </div>
                     <div class="col-md-6">
                         <div class="info-item">
@@ -339,8 +369,21 @@ function displaySearchResults(data) {
                                 }
                             </span>
                         </div>
+                        ${data.matched_sources && data.matched_sources.length > 0 ? `
+                        <div class="info-item">
+                            <span class="info-label">${t.matched_sources}</span>
+                            <span class="info-value">${data.matched_sources.map(source => `<span class="tag tag-source">${escapeHtml(source)}</span>`).join('')}</span>
+                        </div>
+                        ` : ''}
                     </div>
                 </div>
+
+                ${data.identifiers && Object.keys(data.identifiers).length > 0 ? `
+                <div class="info-item">
+                    <span class="info-label">${t.identifiers}</span>
+                    <span class="info-value">${formatIdentifiers(data.identifiers)}</span>
+                </div>
+                ` : ''}
                 
                 ${data.categories && data.categories.length > 0 ? `
                 <div class="info-item">
@@ -372,6 +415,27 @@ function displaySearchResults(data) {
                             `<span class="tag tag-warning">${escapeHtml(data.methods)}</span>`
                         }
                     </span>
+                </div>
+                ` : ''}
+
+                ${data.resolution_notes && data.resolution_notes.length > 0 ? `
+                <div class="info-item">
+                    <span class="info-label">${t.resolution_notes}</span>
+                    <span class="info-value">${data.resolution_notes.map(note => `<div class="signal-line">${escapeHtml(note)}</div>`).join('')}</span>
+                </div>
+                ` : ''}
+
+                ${data.repository_candidates && data.repository_candidates.length > 0 ? `
+                <div class="info-item">
+                    <span class="info-label">${t.repository_candidates}</span>
+                    <span class="info-value">${formatRepositoryCandidates(data.repository_candidates, t)}</span>
+                </div>
+                ` : ''}
+
+                ${data.warnings && data.warnings.length > 0 ? `
+                <div class="info-item">
+                    <span class="info-label">${t.warnings}</span>
+                    <span class="info-value">${data.warnings.map(warning => `<div class="warning-line">${escapeHtml(warning)}</div>`).join('')}</span>
                 </div>
                 ` : ''}
             </div>
@@ -433,13 +497,26 @@ async function handleRelevantSearch(e) {
 // Display relevant papers results
 function displayRelevantResults(data) {
     const resultsDiv = document.getElementById('relevantResults');
+    const lang = currentLanguage || 'zh';
+    const t = {
+        title: lang === 'en' ? 'Related Papers' : '相关论文',
+        original: lang === 'en' ? 'Original paper' : '原论文',
+        found: lang === 'en' ? 'papers found' : '篇相关论文',
+        authors: lang === 'en' ? 'Authors' : '作者',
+        year: lang === 'en' ? 'Year' : '年份',
+        score: lang === 'en' ? 'Score' : '分数',
+        signals: lang === 'en' ? 'Signals' : '信号数',
+        reasons: lang === 'en' ? 'Why recommended' : '推荐理由',
+        sources: lang === 'en' ? 'Sources' : '来源',
+        empty: lang === 'en' ? 'No related papers found. Try another title.' : '未找到相关论文，请尝试其他论文标题'
+    };
     
     let html = `
         <div class="card result-card fade-in">
             <div class="result-header">
-                <h4 class="mb-0"><i class="fas fa-network-wired me-2"></i>相关论文</h4>
-                <p class="mb-0 mt-2 opacity-75">原论文: ${escapeHtml(data.original_title || '未知')}</p>
-                <small class="opacity-75">找到 ${data.total || 0} 篇相关论文</small>
+                <h4 class="mb-0"><i class="fas fa-network-wired me-2"></i>${t.title}</h4>
+                <p class="mb-0 mt-2 opacity-75">${t.original}: ${escapeHtml(data.original_title || 'N/A')}</p>
+                <small class="opacity-75">${data.total || 0} ${t.found}</small>
             </div>
             <div class="result-body">
                 ${data.papers && data.papers.length > 0 ? `
@@ -456,10 +533,16 @@ function displayRelevantResults(data) {
                                     }
                                 </h6>
                                 ${paper.authors && paper.authors.length > 0 ? 
-                                    `<p class="mb-1 text-muted small">作者: ${paper.authors.map(author => escapeHtml(author)).join(', ')}</p>` : 
+                                    `<p class="mb-1 text-muted small">${t.authors}: ${paper.authors.map(author => escapeHtml(author)).join(', ')}</p>` : 
                                     ''
                                 }
-                                ${paper.year ? `<p class="mb-0 text-muted small">年份: ${escapeHtml(paper.year)}</p>` : ''}
+                                <div class="paper-meta mt-2">
+                                    ${paper.year ? `<span class="paper-meta-chip">${t.year}: ${escapeHtml(paper.year)}</span>` : ''}
+                                    ${paper.score ? `<span class="paper-meta-chip">${t.score}: ${escapeHtml(paper.score)}</span>` : ''}
+                                    ${paper.signal_count ? `<span class="paper-meta-chip">${t.signals}: ${escapeHtml(paper.signal_count)}</span>` : ''}
+                                    ${paper.sources && paper.sources.length > 0 ? `<span class="paper-meta-chip">${t.sources}: ${paper.sources.map(source => escapeHtml(source)).join(', ')}</span>` : ''}
+                                </div>
+                                ${paper.reasons && paper.reasons.length > 0 ? `<div class="paper-reasons mt-2">${paper.reasons.map(reason => `<div class="signal-line">${escapeHtml(reason)}</div>`).join('')}</div>` : ''}
                             </div>
                         </div>
                     </div>
@@ -467,7 +550,7 @@ function displayRelevantResults(data) {
                 </div>
                 ` : `
                 <div class="alert alert-info">
-                    <i class="fas fa-info-circle me-2"></i>未找到相关论文，请尝试其他论文标题
+                    <i class="fas fa-info-circle me-2"></i>${t.empty}
                 </div>
                 `}
             </div>
@@ -581,6 +664,39 @@ function formatDatasets(datasets) {
     } else {
         return `<span class="tag tag-success">${escapeHtml(datasets)}</span>`;
     }
+}
+
+function formatConfidence(confidence) {
+    if (confidence === null || confidence === undefined) {
+        return 'N/A';
+    }
+    const numeric = Number(confidence);
+    if (Number.isNaN(numeric)) {
+        return escapeHtml(confidence);
+    }
+    return `${Math.round(numeric * 100)}%`;
+}
+
+function formatIdentifiers(identifiers) {
+    return Object.entries(identifiers).map(([key, value]) => {
+        return `<span class="tag tag-source">${escapeHtml(key)}: ${escapeHtml(value)}</span>`;
+    }).join('');
+}
+
+function formatRepositoryCandidates(candidates, texts) {
+    return candidates.slice(0, 5).map((candidate, index) => `
+        <div class="repo-candidate">
+            <div class="repo-topline">
+                <span class="repo-rank">${texts.best_match} ${index + 1}</span>
+                <span class="repo-score">${texts.score}: ${escapeHtml(candidate.score)}</span>
+            </div>
+            <a href="${escapeHtml(candidate.url)}" target="_blank" class="repo-link">
+                <i class="fab fa-github me-1"></i>${escapeHtml(candidate.name)}
+            </a>
+            ${candidate.description ? `<div class="repo-description">${escapeHtml(candidate.description)}</div>` : ''}
+            ${candidate.reasons && candidate.reasons.length > 0 ? `<div class="repo-reasons">${candidate.reasons.map(reason => `<div class="signal-line">${escapeHtml(reason)}</div>`).join('')}</div>` : ''}
+        </div>
+    `).join('');
 }
 
 // Show alert message

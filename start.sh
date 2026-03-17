@@ -1,19 +1,28 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
-echo "Starting CRUXpider..."
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV_DIR="${CRUXPIDER_VENV_DIR:-$ROOT_DIR/.venv}"
+PORT="${CRUXPIDER_PORT:-5003}"
+HOST="${CRUXPIDER_HOST:-127.0.0.1}"
 
-if [ ! -d "venv" ]; then
-    python3 -m venv venv
+cd "$ROOT_DIR"
+
+echo "CRUXpider bootstrap"
+echo "workspace: $ROOT_DIR"
+echo "venv: $VENV_DIR"
+
+if [ ! -d "$VENV_DIR" ]; then
+  python3 -m venv "$VENV_DIR"
 fi
 
-source venv/bin/activate
-pip install -r requirements.txt
+"$VENV_DIR/bin/python" -m pip install --upgrade pip >/dev/null
+"$VENV_DIR/bin/python" -m pip install -r requirements.txt
 
-export FLASK_APP=app.py
-export FLASK_ENV=development
-export CRUXPIDER_PORT="${CRUXPIDER_PORT:-5003}"
+if [ "${CRUXPIDER_SKIP_TESTS:-0}" != "1" ]; then
+  "$VENV_DIR/bin/python" -m unittest discover -s tests -v
+fi
 
-echo "CRUXpider will be available at http://127.0.0.1:${CRUXPIDER_PORT}"
-python app.py
+echo "Starting CRUXpider on http://$HOST:$PORT"
+exec "$VENV_DIR/bin/python" app.py

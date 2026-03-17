@@ -90,25 +90,55 @@
                     </div>
                     
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100 ${data.pyalex_available ? 'border-success' : 'border-danger'}">
+                        <div class="card h-100 ${data.openalex_available ? 'border-success' : 'border-danger'}">
                             <div class="card-body text-center">
-                                <i class="fas fa-network-wired fa-3x mb-3 ${data.pyalex_available ? 'text-success' : 'text-danger'}"></i>
+                                <i class="fas fa-network-wired fa-3x mb-3 ${data.openalex_available ? 'text-success' : 'text-danger'}"></i>
                                 <h5 class="card-title">OpenAlex API</h5>
                                 <p class="card-text">相关论文搜索服务</p>
-                                <span class="badge ${data.pyalex_available ? 'bg-success' : 'bg-danger'} fs-6">
-                                    ${data.pyalex_available ? '✓ 可用' : '✗ 不可用'}
+                                <span class="badge ${data.openalex_available ? 'bg-success' : 'bg-danger'} fs-6">
+                                    ${data.openalex_available ? '✓ 可用' : '✗ 不可用'}
                                 </span>
                             </div>
                         </div>
                     </div>
                     
                     <div class="col-md-6 mb-4">
-                        <div class="card h-100 border-info">
+                        <div class="card h-100 ${data.semantic_scholar_available ? 'border-success' : 'border-danger'}">
                             <div class="card-body text-center">
-                                <i class="fas fa-cogs fa-3x mb-3 text-info"></i>
-                                <h5 class="card-title">CRUXpider Web</h5>
-                                <p class="card-text">Web应用核心服务</p>
-                                <span class="badge bg-success fs-6">✓ 运行中</span>
+                                <i class="fas fa-brain fa-3x mb-3 ${data.semantic_scholar_available ? 'text-success' : 'text-danger'}"></i>
+                                <h5 class="card-title">Semantic Scholar API</h5>
+                                <p class="card-text">标题匹配、引用信号和推荐</p>
+                                <span class="badge ${data.semantic_scholar_available ? 'bg-success' : 'bg-danger'} fs-6">
+                                    ${data.semantic_scholar_available ? '✓ 可用' : '✗ 不可用'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 ${data.crossref_available ? 'border-success' : 'border-danger'}">
+                            <div class="card-body text-center">
+                                <i class="fas fa-link fa-3x mb-3 ${data.crossref_available ? 'text-success' : 'text-danger'}"></i>
+                                <h5 class="card-title">Crossref API</h5>
+                                <p class="card-text">DOI和出版元数据补全</p>
+                                <span class="badge ${data.crossref_available ? 'bg-success' : 'bg-danger'} fs-6">
+                                    ${data.crossref_available ? '✓ 可用' : '✗ 不可用'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
+                        <div class="card h-100 ${data.github_api_available ? 'border-success' : 'border-danger'}">
+                            <div class="card-body text-center">
+                                <i class="fab fa-github fa-3x mb-3 ${data.github_api_available ? 'text-success' : 'text-danger'}"></i>
+                                <h5 class="card-title">GitHub API</h5>
+                                <p class="card-text">代码仓库发现和排序</p>
+                                <span class="badge ${data.github_api_available ? 'bg-success' : 'bg-danger'} fs-6">
+                                    ${data.github_api_available ? '✓ 可用' : '✗ 不可用'}
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -122,10 +152,12 @@
                             </div>
                             <div class="card-body">
                                 <ul class="list-unstyled">
-                                    <li class="mb-2"><strong>Papers with Code API:</strong> 提供论文相关的数据集、方法和代码仓库信息</li>
+                                    <li class="mb-2"><strong>Papers with Code API:</strong> 旧接口已失效，仅保留状态探测</li>
                                     <li class="mb-2"><strong>arXiv API:</strong> 提供论文的基本信息、分类、期刊和PDF链接</li>
                                     <li class="mb-2"><strong>OpenAlex API:</strong> 提供相关论文搜索和学术网络分析</li>
-                                    <li class="mb-0"><strong>CRUXpider Web:</strong> 整合所有API服务的Web界面</li>
+                                    <li class="mb-2"><strong>Semantic Scholar API:</strong> 提供标题匹配、推荐和引用信号</li>
+                                    <li class="mb-2"><strong>Crossref API:</strong> 提供DOI和出版元数据补全</li>
+                                    <li class="mb-0"><strong>GitHub API:</strong> 提供代码仓库检索和排序</li>
                                 </ul>
                             </div>
                         </div>

@@ -144,9 +144,14 @@
                         <div class="card-body">
                             <h6>响应示例：</h6>
                             <pre><code class="language-json">{
-  "paperswithcode_available": true,
+  "paperswithcode_available": false,
+  "paperswithcode_redirect_target": "https://huggingface.co/papers/trending",
   "arxiv_available": true,
-  "pyalex_available": true
+  "openalex_available": true,
+  "semantic_scholar_available": true,
+  "crossref_available": true,
+  "github_api_available": true,
+  "github_search_fallback": true
 }</code></pre>
                         </div>
                     </div>
@@ -163,14 +168,17 @@
                             <h6>响应示例：</h6>
                             <pre><code class="language-json">{
   "status": "healthy",
-  "timestamp": "2025-05-24T16:53:00.123456",
+  "timestamp": "2026-03-17T16:53:00.123456Z",
   "services": {
-    "paperswithcode": true,
+    "paperswithcode": false,
     "arxiv": true,
-    "pyalex": true,
-    "database": true
+    "openalex": true,
+    "semantic_scholar": true,
+    "crossref": true,
+    "github_api": true,
+    "github_search_fallback": true
   },
-  "version": "1.0.0"
+  "version": "1.2.0"
 }</code></pre>
                         </div>
                     </div>
