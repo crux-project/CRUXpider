@@ -1,37 +1,68 @@
 # CRUXpider
 
-CRUXpider is an academic paper analysis tool that takes a paper title and returns venue information, PDF links, AI-related tags, related papers, and a code search fallback for reproducibility workflows.
+CRUXpider is a lightweight academic paper analysis platform for title-first research workflows. Give it a paper title, and it helps you retrieve venue metadata, PDF links, related papers, AI relevance signals, and a practical code search fallback for reproducibility.
 
-## What It Does
+## Why CRUXpider
 
-- Analyze a single paper title.
-- Find related papers through OpenAlex.
-- Batch-process a CSV of paper titles.
-- Provide a web UI and JSON API for lightweight research workflows.
+Researchers often start from a title, not a DOI or a curated bibliography. CRUXpider is built for that reality:
+
+- Search a single paper from the web UI or API.
+- Discover related papers with OpenAlex.
+- Batch-process a CSV of titles.
+- Surface code-search links when structured code metadata is unavailable.
+- Keep the stack simple enough to self-host and extend.
+
+## Features
+
+- `Single paper analysis`
+  Returns venue or journal information, PDF links, categories, AI-related tags, and repository fallback links.
+- `Related paper discovery`
+  Uses OpenAlex related-works metadata to expand a paper into adjacent literature.
+- `Batch processing`
+  Accepts a CSV of titles and returns a CSV of enriched results.
+- `Web UI + JSON API`
+  Includes a browser UI and direct API endpoints for scripting or integration.
+- `Graceful degradation`
+  External data-source failures do not take the whole app down.
 
 ## Data Sources
 
-- `arXiv` for paper metadata and PDF links.
-- `OpenAlex` for venue information and related works.
-- `GitHub Search` as the current repository fallback.
+- `arXiv`
+  Primary source for title lookup, categories, and PDF links.
+- `OpenAlex`
+  Source for venue metadata and related works.
+- `GitHub Search`
+  Repository fallback when structured paper-to-code metadata is not available.
 
-## Important Note About Papers with Code
+## Papers with Code Status
 
-As of March 17, 2026, requests to `https://paperswithcode.com/api/v1/...` redirect to `https://huggingface.co/papers/trending`, so the old Papers with Code API is no longer a reliable machine API for this project. CRUXpider now treats that source as deprecated and falls back to GitHub search links instead of failing hard.
+As of March 17, 2026, requests to `https://paperswithcode.com/api/v1/...` redirect to [Hugging Face Papers](https://huggingface.co/papers/trending). For CRUXpider, that means the legacy Papers with Code API is no longer treated as a reliable machine API.
+
+Instead of failing hard, CRUXpider now:
+
+- detects the redirect,
+- reports source status through the API,
+- falls back to GitHub repository search links.
+
+This keeps the tool usable even though the old integration path has effectively disappeared.
 
 ## Quick Start
+
+### 1. Create an environment
 
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
-python app.py
 ```
 
-Open [http://127.0.0.1:5003](http://127.0.0.1:5003).
+### 2. Configure environment variables
 
-## Environment Variables
+```bash
+cp .env.example .env
+```
+
+Set values as needed:
 
 ```bash
 CRUXPIDER_HOST=0.0.0.0
@@ -42,9 +73,19 @@ CRUXPIDER_REQUEST_TIMEOUT=12
 CRUXPIDER_MAX_BATCH_SIZE=50
 ```
 
-`PYALEX_EMAIL` is recommended because OpenAlex requests are better-behaved when a contact email is provided.
+`PYALEX_EMAIL` is recommended because OpenAlex behaves better when requests include a contact email.
 
-## API Endpoints
+### 3. Start the app
+
+```bash
+python app.py
+```
+
+Open [http://127.0.0.1:5003](http://127.0.0.1:5003).
+
+## API Overview
+
+### Endpoints
 
 - `POST /api/search_paper`
 - `POST /api/find_relevant_papers`
@@ -52,7 +93,7 @@ CRUXPIDER_MAX_BATCH_SIZE=50
 - `GET /api/status`
 - `GET /api/health`
 
-Example:
+### Example request
 
 ```bash
 curl -X POST http://127.0.0.1:5003/api/search_paper \
@@ -60,34 +101,70 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
   -d '{"title": "Attention Is All You Need"}'
 ```
 
+### Example response shape
+
+```json
+{
+  "title": "Attention Is All You Need",
+  "journal_conference": "NeurIPS",
+  "pdf_url": "https://arxiv.org/pdf/1706.03762.pdf",
+  "categories": ["cs.CL", "cs.LG"],
+  "ai_related": "YES",
+  "datasets": [],
+  "methods": [],
+  "repository_url": "https://github.com/search?q=Attention+Is+All+You+Need&type=repositories",
+  "warnings": []
+}
+```
+
+## Running Tests
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+The current test suite focuses on route-level behavior and response contracts for the main Flask API.
+
 ## Project Structure
 
 ```text
 CRUXpider/
-├── app.py
-├── app_integrated.py
-├── CRUXpider.py
-├── config.py
-├── requirements.txt
-├── templates/
-└── static/
+├── app.py                  # Main Flask application
+├── app_integrated.py       # Compatibility entrypoint
+├── CRUXpider.py            # Legacy CLI-oriented logic
+├── config.py               # Environment-driven settings
+├── templates/              # HTML templates
+├── static/                 # Frontend assets
+├── tests/                  # Route-level tests
+└── requirements.txt
 ```
 
-## Publishing Notes
+## Design Notes
 
-Before pushing to GitHub:
+- `Simple deployment`
+  The app is intentionally lightweight and can run locally, behind Gunicorn, or in Docker.
+- `Open-source safe defaults`
+  Secrets are environment-based, and local artifacts are excluded by `.gitignore`.
+- `Research workflow first`
+  The UX is optimized around entering titles and getting actionable metadata back quickly.
 
-- Keep the repository root at `CRUXpider/`, not your Desktop parent folder.
-- Do not commit `venv/`, `build/`, `dist/`, notebooks, local PDFs, test scripts, or CSV outputs.
-- Set secrets through environment variables only.
-- Choose and add an open source license before making the repo public.
+## Known Limitations
+
+- Paper title matching is heuristic and depends on external metadata quality.
+- Repository discovery is currently a search fallback, not a verified paper-to-code mapping.
+- Some fields may be empty when arXiv or OpenAlex does not expose the needed metadata.
+
+## Roadmap
+
+- Improve title matching and ranking quality.
+- Add stronger repository extraction beyond GitHub search fallback.
+- Add structured caching and request metrics.
+- Add screenshot/demo assets for the repository homepage.
+
+## Release
+
+For the first public release checklist, see [PUBLISH_CHECKLIST.md](/Users/anthonyche/Desktop/CRUXpider/PUBLISH_CHECKLIST.md).
 
 ## License
 
 This project is released under the MIT License. See [LICENSE](/Users/anthonyche/Desktop/CRUXpider/LICENSE).
-
-## Basic Test Run
-
-```bash
-python -m unittest discover -s tests
-```
