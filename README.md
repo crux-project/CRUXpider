@@ -17,7 +17,7 @@ AI4Science research asset discovery from paper titles, topics, and research area
 
 - `Research Profile`: structured fields for domains, tasks, method families, artifact types, community fit, and reproducibility
 - `Single paper analysis`: multi-source title resolution, venue, PDF, categories, confidence, identifiers, and ranked code candidates
-- `Topic and area exploration`: find representative papers, datasets, methods, repositories, and reading paths for AI4Science themes
+- `Topic and area exploration`: find representative papers, datasets, methods, repositories, reading paths, and a research route map for AI4Science themes
 - `Dataset discovery`: public-info-first candidates from OpenAIRE ScholeXplorer, DataCite, Crossref, OpenAlex, plus heuristic text extraction
 - `Related papers`: Semantic Scholar + OpenAlex ranking pipeline with explanations from venue, year, topic, method, author, and citation signals, plus grouped research-navigation views
 - `CSV batch mode`: title list in, enriched CSV out
@@ -98,6 +98,8 @@ CRUXPIDER_RESULT_CACHE_TTL=900
 `CROSSREF_MAILTO` is recommended for polite Crossref usage.
 `GITHUB_TOKEN` and `SEMANTIC_SCHOLAR_API_KEY` are optional but improve rate limits.
 `CRUXPIDER_RESULT_CACHE_TTL` controls the in-process cache lifetime for repeated queries.
+
+`GITHUB_TOKEN` is strongly recommended for topic and area exploration, because GitHub's authenticated API limits are much more practical than anonymous search limits.
 
 ### 3. Docker startup
 

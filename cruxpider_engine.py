@@ -47,6 +47,16 @@ DOMAIN_KEYWORDS = {
     "climate": ["climate", "weather", "earth", "atmospheric", "ocean", "carbon", "environment"],
     "robotics": ["robot", "robotics", "grasping", "navigation", "manipulation", "control"],
 }
+DOMAIN_CATEGORY_HINTS = {
+    "ai": ["machine learning", "artificial intelligence", "computer vision", "natural language processing"],
+    "materials": ["materials", "materials informatics", "condensed matter", "crystallography"],
+    "chemistry": ["chemistry", "chemical engineering", "molecular science"],
+    "biology": ["biology", "bioinformatics", "genomics", "proteomics"],
+    "medicine": ["medicine", "medical imaging", "clinical medicine", "radiology", "biomedicine"],
+    "physics": ["physics", "quantum", "physical chemistry"],
+    "climate": ["climate", "earth science", "environmental science", "atmospheric science"],
+    "robotics": ["robotics", "autonomous systems", "control systems"],
+}
 TASK_KEYWORDS = {
     "property prediction": ["property prediction", "bandgap", "yield prediction", "forecasting", "regression"],
     "inverse design": ["inverse design", "design generation", "molecule design", "materials design"],
@@ -56,6 +66,14 @@ TASK_KEYWORDS = {
     "benchmarking": ["benchmark", "challenge", "leaderboard", "evaluation suite"],
     "structure prediction": ["structure prediction", "folding", "conformation"],
     "generation": ["generation", "generative", "synthesis"],
+    "molecular property prediction": ["molecular property prediction", "admet", "solubility", "toxicity", "affinity prediction"],
+    "reaction prediction": ["reaction prediction", "reaction outcome", "reaction yield"],
+    "drug discovery": ["drug discovery", "virtual screening", "hit discovery", "lead optimization"],
+    "genomics": ["gene expression", "genome", "genomic", "variant effect", "single-cell", "transcriptomics"],
+    "protein modeling": ["protein function", "protein design", "protein engineering", "antibody design"],
+    "diagnosis": ["diagnosis", "diagnostic", "detection", "screening", "triage"],
+    "prognosis": ["prognosis", "risk prediction", "survival analysis", "outcome prediction"],
+    "medical report generation": ["report generation", "clinical report", "radiology report"],
 }
 METHOD_FAMILY_KEYWORDS = {
     "transformer": ["transformer", "bert", "gpt", "vision transformer"],
@@ -236,6 +254,16 @@ def _extract_year(value: str | None) -> int | None:
         return None
 
 
+def _text_contains_keyword(text: str, keyword: str) -> bool:
+    lowered_text = text.lower()
+    lowered_keyword = keyword.lower().strip()
+    if not lowered_keyword:
+        return False
+    if " " in lowered_keyword or "-" in lowered_keyword:
+        return lowered_keyword in lowered_text
+    return re.search(rf"(?<![a-z0-9]){re.escape(lowered_keyword)}(?![a-z0-9])", lowered_text) is not None
+
+
 class CRUXpiderEngine:
     def __init__(self) -> None:
         self.session = requests.Session()
@@ -385,7 +413,7 @@ class CRUXpiderEngine:
         )[:max_papers]
 
         common_methods = self._aggregate_named_assets(
-            [paper.get("methods", []) for paper in representative_papers],
+            [paper.get("research_profile", {}).get("method_families", []) for paper in representative_papers],
             limit=8,
         )
         common_datasets = self._aggregate_dataset_assets(representative_papers, limit=8)
@@ -403,6 +431,14 @@ class CRUXpiderEngine:
             "common_datasets": common_datasets,
             "code_repositories": code_repositories,
             "reading_path": self._build_reading_path(representative_papers),
+            "research_brief": self._build_research_brief(
+                query=query,
+                aggregated_profile=aggregated_profile,
+                representative_papers=representative_papers,
+                common_datasets=common_datasets,
+                common_methods=common_methods,
+                code_repositories=code_repositories,
+            ),
             "total": len(representative_papers),
         }
 
@@ -482,9 +518,14 @@ class CRUXpiderEngine:
             return []
 
         results = []
+        query_tokens = _token_set(query)
         for item in response.json().get("results", []):
             title = item.get("display_name")
             if not title:
+                continue
+            similarity = _title_similarity(query, title)
+            token_overlap = len(query_tokens & _token_set(title))
+            if similarity < 0.18 and token_overlap < max(1, min(2, len(query_tokens))):
                 continue
             results.append(
                 {
@@ -492,9 +533,14 @@ class CRUXpiderEngine:
                     "year": item.get("publication_year"),
                     "citation_count": int(item.get("cited_by_count") or 0),
                     "venue": self._openalex_source_name(item),
+                    "query_similarity": round(similarity, 3),
                 }
             )
-        return results
+        return sorted(
+            results,
+            key=lambda item: (item.get("query_similarity", 0.0), item.get("citation_count", 0)),
+            reverse=True,
+        )[:max_papers]
 
     def find_relevant_papers(self, paper_title: str, max_papers: int = 10) -> list[dict[str, Any]]:
         cache_key = ("related", f"{_normalize_title(paper_title)}::{int(max_papers)}")
@@ -1758,11 +1804,25 @@ class CRUXpiderEngine:
         repository_candidates: list[dict[str, Any]],
         abstract_text: str,
     ) -> dict[str, Any]:
+        title_text = title.lower()
+        category_text = " ".join(categories).lower()
         text_parts = [title, abstract_text, " ".join(categories), " ".join(str(method) for method in methods)]
         text = " ".join(part for part in text_parts if part).lower()
-        domains = self._collect_profile_tags(text, DOMAIN_KEYWORDS)
-        tasks = self._collect_profile_tags(text, TASK_KEYWORDS)
-        method_families = self._collect_method_families(text, methods)
+        domains = self._rank_profile_tags(
+            text=text,
+            title_text=title_text,
+            mapping=DOMAIN_KEYWORDS,
+            category_text=category_text,
+            category_mapping=DOMAIN_CATEGORY_HINTS,
+            min_score=2.0,
+        )
+        tasks = self._rank_profile_tags(
+            text=text,
+            title_text=title_text,
+            mapping=TASK_KEYWORDS,
+            min_score=1.8,
+        )
+        method_families = self._collect_method_families(text, title_text, methods)
         artifact_profile = self._collect_artifact_profile(text, datasets, repository_candidates)
         community_fit = self._collect_community_fit(domains, categories, title)
         reproducibility_level = self._infer_reproducibility_level(datasets, repository_candidates)
@@ -1790,13 +1850,52 @@ class CRUXpiderEngine:
             "summary": " + ".join(summary_parts) if summary_parts else "metadata pending",
         }
 
+    def _build_research_brief(
+        self,
+        query: str,
+        aggregated_profile: dict[str, Any],
+        representative_papers: list[dict[str, Any]],
+        common_datasets: list[dict[str, Any]],
+        common_methods: list[dict[str, Any]],
+        code_repositories: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        actions: list[str] = []
+        if common_datasets:
+            actions.append(f"Start by checking dataset candidates around {common_datasets[0]['name']}.")
+        else:
+            actions.append("Dataset coverage is still sparse here; inspect representative papers manually.")
+        if common_methods:
+            actions.append(f"Method family to anchor on: {common_methods[0]['name']}.")
+        if code_repositories:
+            actions.append("There is code evidence in this cluster, so reproducibility exploration should start with repositories.")
+        else:
+            actions.append("Code evidence is weak in this cluster; expect more manual repository verification.")
+
+        starter_paper = representative_papers[0] if representative_papers else {}
+        headline = aggregated_profile.get("summary") or f"{query} research asset overview"
+        return {
+            "headline": headline,
+            "starter_paper": {
+                "title": starter_paper.get("title"),
+                "url": starter_paper.get("landing_page_url") or starter_paper.get("pdf_url") or "",
+            } if starter_paper else {},
+            "actions": actions[:3],
+        }
+
     def _aggregate_research_profiles(self, profiles: list[dict[str, Any]]) -> dict[str, Any]:
+        min_count = 2 if len(profiles) >= 4 else 1
+
         def top_values(field_name: str, limit: int = 4) -> list[str]:
             counts: dict[str, int] = {}
             for profile in profiles:
                 for value in profile.get(field_name, []):
                     counts[value] = counts.get(value, 0) + 1
-            return [item for item, _ in sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))[:limit]]
+            filtered = [
+                (item, count)
+                for item, count in counts.items()
+                if count >= min_count
+            ] or list(counts.items())
+            return [item for item, _ in sorted(filtered, key=lambda pair: (-pair[1], pair[0]))[:limit]]
 
         reproducibility = "low"
         if any(profile.get("reproducibility_level") == "high" for profile in profiles):
@@ -1843,6 +1942,8 @@ class CRUXpiderEngine:
                     name = dataset.get("name")
                     if not name:
                         continue
+                    if dataset.get("mapping_status") != "linked_dataset" and not self._is_plausible_dataset_name(name):
+                        continue
                     entry = counts.setdefault(
                         name,
                         {
@@ -1861,6 +1962,8 @@ class CRUXpiderEngine:
                 else:
                     name = str(dataset).strip()
                     if not name:
+                        continue
+                    if not self._is_plausible_dataset_name(name):
                         continue
                     entry = counts.setdefault(
                         name,
@@ -1914,20 +2017,62 @@ class CRUXpiderEngine:
             )
         return reading_path
 
-    def _collect_profile_tags(self, text: str, mapping: dict[str, list[str]]) -> list[str]:
-        hits: list[str] = []
-        for label, keywords in mapping.items():
-            if any(keyword in text for keyword in keywords):
-                hits.append(label)
-        return hits[:5]
+    def _is_plausible_dataset_name(self, name: str) -> bool:
+        lowered = name.strip().lower()
+        if not lowered:
+            return False
+        if lowered in {item.lower() for item in DATASET_KEYWORDS}:
+            return True
+        if any(keyword in lowered for keyword in ("dataset", "benchmark", "challenge", "database", "corpus")):
+            return True
+        if len(lowered) < 5:
+            return False
+        if re.fullmatch(r"[a-z0-9\-]+", lowered) and any(char.isdigit() for char in lowered):
+            return False
+        if re.fullmatch(r"[a-z]{1,4}\-?", lowered):
+            return False
+        return " " in lowered
 
-    def _collect_method_families(self, text: str, methods: list[str]) -> list[str]:
+    def _rank_profile_tags(
+        self,
+        text: str,
+        title_text: str,
+        mapping: dict[str, list[str]],
+        category_text: str = "",
+        category_mapping: dict[str, list[str]] | None = None,
+        min_score: float = 1.5,
+    ) -> list[str]:
+        scored: list[tuple[str, float]] = []
+        for label, keywords in mapping.items():
+            score = 0.0
+            for keyword in keywords:
+                if _text_contains_keyword(title_text, keyword):
+                    score += 2.0
+                elif _text_contains_keyword(text, keyword):
+                    score += 1.0
+            if category_mapping:
+                for keyword in category_mapping.get(label, []):
+                    if _text_contains_keyword(category_text, keyword):
+                        score += 2.0
+            if score >= min_score:
+                scored.append((label, score))
+        scored.sort(key=lambda item: (-item[1], item[0]))
+        return [label for label, _ in scored[:4]]
+
+    def _collect_method_families(self, text: str, title_text: str, methods: list[str]) -> list[str]:
         lowered_methods = " ".join(methods).lower()
-        families = []
+        families: list[tuple[str, float]] = []
         for label, keywords in METHOD_FAMILY_KEYWORDS.items():
-            if any(keyword in text or keyword in lowered_methods for keyword in keywords):
-                families.append(label)
-        return _dedupe_strings(families)[:5]
+            score = 0.0
+            for keyword in keywords:
+                if _text_contains_keyword(title_text, keyword):
+                    score += 2.0
+                elif _text_contains_keyword(text, keyword) or _text_contains_keyword(lowered_methods, keyword):
+                    score += 1.0
+            if score >= 1.0:
+                families.append((label, score))
+        families.sort(key=lambda item: (-item[1], item[0]))
+        return [label for label, _ in families[:4]]
 
     def _collect_artifact_profile(
         self,
@@ -1999,8 +2144,8 @@ class CRUXpiderEngine:
             return [], []
         lowered = text.lower()
 
-        methods = [keyword for keyword in METHOD_KEYWORDS if keyword in lowered]
-        datasets = [keyword for keyword in DATASET_KEYWORDS if keyword in lowered]
+        methods = [keyword for keyword in METHOD_KEYWORDS if _text_contains_keyword(lowered, keyword)]
+        datasets = [keyword for keyword in DATASET_KEYWORDS if _text_contains_keyword(lowered, keyword)]
 
         benchmark_matches = re.findall(r"\b([A-Z]{2,}[A-Z0-9\-\_]{1,})\b", text)
         for match in benchmark_matches:

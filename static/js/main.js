@@ -724,6 +724,11 @@ function displayResearchAssetResults(data, resultsId) {
     const lang = currentLanguage || 'zh';
     const labels = {
         zh: {
+            assistant_brief: '研究助手摘要',
+            about_area: 'What this area is about',
+            start_here: '建议从这里开始',
+            available_assets: 'What assets are available',
+            next_actions: '下一步建议',
             representative_papers: '代表论文',
             common_methods: '常见方法族',
             common_datasets: '常见数据资产',
@@ -731,8 +736,14 @@ function displayResearchAssetResults(data, resultsId) {
             reading_path: '推荐阅读路径',
             papers_found: '篇代表论文',
             stage: '阶段',
+            route_map: '研究路线图',
         },
         en: {
+            assistant_brief: 'Research Assistant Brief',
+            about_area: 'What this area is about',
+            start_here: 'Start Here',
+            available_assets: 'What assets are available',
+            next_actions: 'Next Actions',
             representative_papers: 'Representative Papers',
             common_methods: 'Common Method Families',
             common_datasets: 'Common Dataset Assets',
@@ -740,6 +751,7 @@ function displayResearchAssetResults(data, resultsId) {
             reading_path: 'Suggested Reading Path',
             papers_found: 'representative papers',
             stage: 'Stage',
+            route_map: 'Research Route Map',
         }
     };
     const t = labels[lang];
@@ -750,28 +762,8 @@ function displayResearchAssetResults(data, resultsId) {
                 <h4 class="mb-0"><i class="fas fa-compass me-2"></i>${escapeHtml(data.query)}</h4>
             </div>
             <div class="result-body">
-                <div class="info-item">
-                    <span class="info-label">${lang === 'en' ? 'Research Profile:' : '研究画像:'}</span>
-                    <span class="info-value">${formatResearchProfile(data.research_profile)}</span>
-                </div>
-                <div class="asset-grid">
-                    <div class="asset-panel">
-                        <div class="asset-panel-title">${t.common_methods}</div>
-                        <div>${formatCountTags(data.common_methods)}</div>
-                    </div>
-                    <div class="asset-panel">
-                        <div class="asset-panel-title">${t.common_datasets}</div>
-                        <div>${formatDatasetCounts(data.common_datasets)}</div>
-                    </div>
-                    <div class="asset-panel">
-                        <div class="asset-panel-title">${t.code_repositories}</div>
-                        <div>${formatRepositoryCounts(data.code_repositories)}</div>
-                    </div>
-                    <div class="asset-panel">
-                        <div class="asset-panel-title">${t.reading_path}</div>
-                        <div>${formatReadingPath(data.reading_path, t)}</div>
-                    </div>
-                </div>
+                ${formatResearchBrief(data.research_brief, data.research_profile, t, lang)}
+                ${formatResearchRouteMap(data, t)}
                 <div class="mt-4">
                     <div class="asset-panel-title">${t.representative_papers} (${escapeHtml(data.total)} ${t.papers_found})</div>
                     ${formatRepresentativePapers(data.representative_papers)}
@@ -910,6 +902,80 @@ function formatRepresentativePapers(items) {
             <div class="mt-2">${formatResearchProfile(item.research_profile)}</div>
         </div>
     `).join('');
+}
+
+function formatResearchBrief(brief, profile, labels, lang) {
+    const headline = brief?.headline || profile?.summary || 'N/A';
+    const starter = brief?.starter_paper || {};
+    const actions = brief?.actions || [];
+    return `
+        <div class="assistant-brief">
+            <div class="assistant-headline">${escapeHtml(headline)}</div>
+            <div class="info-item">
+                <span class="info-label">${lang === 'en' ? 'Research Profile:' : '研究画像:'}</span>
+                <span class="info-value">${formatResearchProfile(profile)}</span>
+            </div>
+            <div class="asset-grid asset-grid-brief">
+                <div class="asset-panel asset-panel-brief">
+                    <div class="asset-panel-title">${labels.start_here}</div>
+                    <div class="assistant-line">
+                        ${starter.url ? `<a href="${escapeHtml(starter.url)}" target="_blank" class="dataset-link">${escapeHtml(starter.title || 'N/A')}</a>` : `<span>${escapeHtml(starter.title || 'N/A')}</span>`}
+                    </div>
+                </div>
+                <div class="asset-panel asset-panel-brief">
+                    <div class="asset-panel-title">${labels.next_actions}</div>
+                    ${actions.length > 0 ? actions.map(item => `<div class="assistant-line">${escapeHtml(item)}</div>`).join('') : '<div class="assistant-line">N/A</div>'}
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function formatResearchRouteMap(data, labels) {
+    return `
+        <div class="route-map">
+            <div class="route-map-title">${labels.route_map}</div>
+            <div class="route-map-grid">
+                <div class="route-step">
+                    <div class="route-step-index">1</div>
+                    <div class="route-step-title">${labels.about_area}</div>
+                    <div class="route-step-body">${formatResearchProfile(data.research_profile)}</div>
+                </div>
+                <div class="route-step">
+                    <div class="route-step-index">2</div>
+                    <div class="route-step-title">${labels.start_here}</div>
+                    <div class="route-step-body">${formatReadingPath(data.reading_path?.slice(0, 2), labels)}</div>
+                </div>
+                <div class="route-step">
+                    <div class="route-step-index">3</div>
+                    <div class="route-step-title">${labels.available_assets}</div>
+                    <div class="route-step-body">
+                        <div class="route-assets-block">
+                            <div class="asset-panel-title">${labels.common_methods}</div>
+                            <div>${formatCountTags(data.common_methods)}</div>
+                        </div>
+                        <div class="route-assets-block">
+                            <div class="asset-panel-title">${labels.common_datasets}</div>
+                            <div>${formatDatasetCounts(data.common_datasets)}</div>
+                        </div>
+                        <div class="route-assets-block">
+                            <div class="asset-panel-title">${labels.code_repositories}</div>
+                            <div>${formatRepositoryCounts(data.code_repositories)}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="route-step">
+                    <div class="route-step-index">4</div>
+                    <div class="route-step-title">${labels.next_actions}</div>
+                    <div class="route-step-body">
+                        ${(data.research_brief?.actions || []).length > 0
+                            ? data.research_brief.actions.map(item => `<div class="assistant-line">${escapeHtml(item)}</div>`).join('')
+                            : '<div class="assistant-line">N/A</div>'}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function formatConfidence(confidence) {

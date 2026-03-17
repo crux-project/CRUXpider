@@ -418,6 +418,10 @@ html {
     margin-top: 1rem;
 }
 
+.asset-grid-brief {
+    margin-top: 0.75rem;
+}
+
 .asset-panel {
     padding: 1rem;
     border-radius: 1rem;
@@ -425,10 +429,96 @@ html {
     border: 1px solid #e2e8f0;
 }
 
+.asset-panel-brief {
+    background: #ffffff;
+}
+
 .asset-panel-title {
     font-weight: 700;
     color: #1e293b;
     margin-bottom: 0.65rem;
+}
+
+.assistant-brief {
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.1rem;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, #eef4ff 0%, #f8fafc 100%);
+    border: 1px solid #dbeafe;
+}
+
+.assistant-headline {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1e3a8a;
+    margin-bottom: 0.8rem;
+}
+
+.assistant-line {
+    color: #334155;
+    margin-bottom: 0.5rem;
+}
+
+.assistant-line:last-child {
+    margin-bottom: 0;
+}
+
+.route-map {
+    margin-top: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.route-map-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 0.8rem;
+}
+
+.route-map-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+}
+
+.route-step {
+    position: relative;
+    padding: 1rem 1rem 1rem 1.15rem;
+    border-radius: 1rem;
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.route-step-index {
+    width: 1.9rem;
+    height: 1.9rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #dbeafe;
+    color: #1d4ed8;
+    font-weight: 800;
+    margin-bottom: 0.65rem;
+}
+
+.route-step-title {
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.65rem;
+}
+
+.route-step-body {
+    color: #334155;
+}
+
+.route-assets-block {
+    margin-bottom: 0.85rem;
+}
+
+.route-assets-block:last-child {
+    margin-bottom: 0;
 }
 
 .asset-line {
