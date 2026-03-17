@@ -75,6 +75,20 @@ TASK_KEYWORDS = {
     "prognosis": ["prognosis", "risk prediction", "survival analysis", "outcome prediction"],
     "medical report generation": ["report generation", "clinical report", "radiology report"],
 }
+TASK_DOMAIN_HINTS = {
+    "property prediction": ["materials", "chemistry"],
+    "inverse design": ["materials", "chemistry"],
+    "retrosynthesis": ["chemistry"],
+    "reaction prediction": ["chemistry"],
+    "drug discovery": ["chemistry", "medicine", "biology"],
+    "molecular property prediction": ["chemistry", "medicine"],
+    "genomics": ["biology", "medicine"],
+    "protein modeling": ["biology", "medicine"],
+    "diagnosis": ["medicine"],
+    "prognosis": ["medicine"],
+    "medical report generation": ["medicine"],
+    "simulation": ["physics", "materials", "chemistry"],
+}
 METHOD_FAMILY_KEYWORDS = {
     "transformer": ["transformer", "bert", "gpt", "vision transformer"],
     "diffusion": ["diffusion"],
@@ -388,6 +402,14 @@ class CRUXpiderEngine:
         max_papers: int = 5,
     ) -> dict[str, Any]:
         max_papers = max(3, min(max_papers, 8))
+        query_profile = self._build_research_profile(
+            title=query,
+            categories=[],
+            methods=[],
+            datasets=[],
+            repository_candidates=[],
+            abstract_text="",
+        )
         seeds = self._search_openalex_free_text(query, max_papers=max_papers)
         representative_papers: list[dict[str, Any]] = []
 
@@ -402,13 +424,19 @@ class CRUXpiderEngine:
                 try:
                     enriched = future.result()
                     enriched["seed_citation_count"] = seed.get("citation_count", 0)
+                    enriched["query_alignment"] = self._research_profile_alignment_score(
+                        enriched.get("research_profile", {}),
+                        query_profile,
+                        query,
+                        enriched.get("title", ""),
+                    )
                     representative_papers.append(enriched)
                 except Exception as exc:
                     logger.warning("Research asset exploration failed for %s: %s", seed.get("title"), exc)
 
         representative_papers = sorted(
             representative_papers,
-            key=lambda item: (item.get("confidence", 0.0), item.get("citation_count", 0)),
+            key=lambda item: (item.get("query_alignment", 0.0), item.get("confidence", 0.0), item.get("citation_count", 0)),
             reverse=True,
         )[:max_papers]
 
@@ -419,7 +447,8 @@ class CRUXpiderEngine:
         common_datasets = self._aggregate_dataset_assets(representative_papers, limit=8)
         code_repositories = self._aggregate_repository_assets(representative_papers, limit=6)
         aggregated_profile = self._aggregate_research_profiles(
-            [paper.get("research_profile", {}) for paper in representative_papers]
+            [paper.get("research_profile", {}) for paper in representative_papers],
+            query_profile=query_profile,
         )
 
         return {
@@ -1822,6 +1851,7 @@ class CRUXpiderEngine:
             mapping=TASK_KEYWORDS,
             min_score=1.8,
         )
+        domains = self._align_domains_with_tasks(domains, tasks)
         method_families = self._collect_method_families(text, title_text, methods)
         artifact_profile = self._collect_artifact_profile(text, datasets, repository_candidates)
         community_fit = self._collect_community_fit(domains, categories, title)
@@ -1880,9 +1910,19 @@ class CRUXpiderEngine:
                 "url": starter_paper.get("landing_page_url") or starter_paper.get("pdf_url") or "",
             } if starter_paper else {},
             "actions": actions[:3],
+            "availability": {
+                "papers": len(representative_papers),
+                "datasets": len(common_datasets),
+                "methods": len(common_methods),
+                "repositories": len(code_repositories),
+            },
         }
 
-    def _aggregate_research_profiles(self, profiles: list[dict[str, Any]]) -> dict[str, Any]:
+    def _aggregate_research_profiles(
+        self,
+        profiles: list[dict[str, Any]],
+        query_profile: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         min_count = 2 if len(profiles) >= 4 else 1
 
         def top_values(field_name: str, limit: int = 4) -> list[str]:
@@ -1890,11 +1930,27 @@ class CRUXpiderEngine:
             for profile in profiles:
                 for value in profile.get(field_name, []):
                     counts[value] = counts.get(value, 0) + 1
+            if query_profile:
+                for value in query_profile.get(field_name, []):
+                    counts[value] = counts.get(value, 0) + 3
             filtered = [
                 (item, count)
                 for item, count in counts.items()
                 if count >= min_count
             ] or list(counts.items())
+            if query_profile and query_profile.get(field_name):
+                preferred = set(query_profile.get(field_name, []))
+                prioritized = [
+                    (item, count)
+                    for item, count in filtered
+                    if item in preferred
+                ]
+                extras = [
+                    (item, count)
+                    for item, count in filtered
+                    if item not in preferred and count >= (min_count + 1 if field_name in {"domains", "tasks"} else min_count)
+                ]
+                filtered = prioritized + extras if prioritized else filtered
             return [item for item, _ in sorted(filtered, key=lambda pair: (-pair[1], pair[0]))[:limit]]
 
         reproducibility = "low"
@@ -1903,11 +1959,13 @@ class CRUXpiderEngine:
         elif any(profile.get("reproducibility_level") == "medium" for profile in profiles):
             reproducibility = "medium"
 
-        domains = top_values("domains")
-        tasks = top_values("tasks")
+        primary_query_domain = (query_profile or {}).get("domains", [])[:1]
+        domain_limit = 2 if primary_query_domain and primary_query_domain[0] in {"materials", "chemistry", "biology", "medicine"} else 3
+        domains = top_values("domains", limit=domain_limit)
+        tasks = top_values("tasks", limit=4)
         method_families = top_values("method_families")
         artifact_profile = top_values("artifact_profile")
-        community_fit = top_values("community_fit")
+        community_fit = self._align_community_fit_with_domains(top_values("community_fit"), domains)
         summary_parts = [part for part in [domains[:1], tasks[:1], method_families[:1]] if part]
         summary = " + ".join(part[0] for part in summary_parts)
         if summary:
@@ -1923,6 +1981,48 @@ class CRUXpiderEngine:
             "reproducibility_level": reproducibility,
             "summary": summary,
         }
+
+    def _align_domains_with_tasks(self, domains: list[str], tasks: list[str]) -> list[str]:
+        scores: dict[str, float] = {}
+        for index, domain in enumerate(domains):
+            scores[domain] = max(scores.get(domain, 0.0), 3.0 - index * 0.3)
+        for task in tasks:
+            for index, domain in enumerate(TASK_DOMAIN_HINTS.get(task, [])):
+                scores[domain] = scores.get(domain, 0.0) + (2.5 - index * 0.5)
+        ranked = sorted(scores.items(), key=lambda item: (-item[1], item[0]))
+        return [domain for domain, score in ranked if score >= 2.0][:4]
+
+    def _research_profile_alignment_score(
+        self,
+        paper_profile: dict[str, Any],
+        query_profile: dict[str, Any],
+        query: str,
+        title: str,
+    ) -> float:
+        score = _title_similarity(query, title)
+        score += 0.25 * len(set(paper_profile.get("domains", [])) & set(query_profile.get("domains", [])))
+        score += 0.2 * len(set(paper_profile.get("tasks", [])) & set(query_profile.get("tasks", [])))
+        score += 0.1 * len(set(paper_profile.get("method_families", [])) & set(query_profile.get("method_families", [])))
+        return round(score, 3)
+
+    def _align_community_fit_with_domains(self, community_fit: list[str], domains: list[str]) -> list[str]:
+        aligned: list[str] = []
+        allowed = {"AI4Science"}
+        if "materials" in domains:
+            allowed.add("materials")
+        if "chemistry" in domains:
+            allowed.add("chem")
+        if "biology" in domains or "medicine" in domains:
+            allowed.add("bio")
+        if "ai" in domains:
+            allowed.update({"CV", "NLP"})
+
+        for label in community_fit:
+            if label in allowed or label in domains:
+                aligned.append(label)
+        if not aligned:
+            aligned = community_fit[:3]
+        return aligned[:4]
 
     def _aggregate_named_assets(self, groups: list[list[str]], limit: int = 8) -> list[dict[str, Any]]:
         counts: dict[str, int] = {}
