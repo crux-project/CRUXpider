@@ -411,6 +411,38 @@ html {
     margin-bottom: 0;
 }
 
+.asset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.asset-panel {
+    padding: 1rem;
+    border-radius: 1rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.asset-panel-title {
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 0.65rem;
+}
+
+.asset-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.asset-line:last-child {
+    margin-bottom: 0;
+}
+
 .dataset-candidate {
     padding: 0.75rem 0;
     border-bottom: 1px solid #e2e8f0;

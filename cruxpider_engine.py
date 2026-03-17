@@ -37,6 +37,40 @@ from config import (
 logger = logging.getLogger(__name__)
 
 AI_CATEGORIES = {"stat.ML", "cs.AI", "cs.CV", "cs.LG", "cs.CL", "cs.RO"}
+DOMAIN_KEYWORDS = {
+    "ai": ["machine learning", "deep learning", "neural", "transformer", "llm", "artificial intelligence"],
+    "materials": ["materials", "material", "crystal", "alloy", "perovskite", "bandgap", "catalyst"],
+    "chemistry": ["chemistry", "chemical", "molecule", "molecular", "reaction", "retrosynthesis", "polymer"],
+    "biology": ["biology", "biological", "protein", "genome", "genomic", "cell", "rna", "dna"],
+    "medicine": ["medical", "medicine", "clinical", "disease", "patient", "radiograph", "diagnosis", "drug discovery"],
+    "physics": ["physics", "physical", "quantum", "particle", "thermodynamic", "simulation"],
+    "climate": ["climate", "weather", "earth", "atmospheric", "ocean", "carbon", "environment"],
+    "robotics": ["robot", "robotics", "grasping", "navigation", "manipulation", "control"],
+}
+TASK_KEYWORDS = {
+    "property prediction": ["property prediction", "bandgap", "yield prediction", "forecasting", "regression"],
+    "inverse design": ["inverse design", "design generation", "molecule design", "materials design"],
+    "retrosynthesis": ["retrosynthesis", "reaction planning"],
+    "segmentation": ["segmentation", "mask", "pixel-wise"],
+    "simulation": ["simulation", "molecular dynamics", "finite element", "dft"],
+    "benchmarking": ["benchmark", "challenge", "leaderboard", "evaluation suite"],
+    "structure prediction": ["structure prediction", "folding", "conformation"],
+    "generation": ["generation", "generative", "synthesis"],
+}
+METHOD_FAMILY_KEYWORDS = {
+    "transformer": ["transformer", "bert", "gpt", "vision transformer"],
+    "diffusion": ["diffusion"],
+    "graph neural network": ["graph neural network", "gnn", "graph learning"],
+    "foundation model": ["foundation model", "large language model", "llm", "pretrained model"],
+    "molecular dynamics": ["molecular dynamics"],
+    "dft-assisted ml": ["dft", "density functional theory"],
+    "retrieval-augmented generation": ["retrieval-augmented generation", "rag"],
+}
+ARTIFACT_PROFILE_KEYWORDS = {
+    "benchmark": ["benchmark", "challenge", "leaderboard"],
+    "protocol": ["protocol", "workflow", "procedure", "assay"],
+    "wet-lab resource": ["wet lab", "assay", "screening", "biobank"],
+}
 METHOD_KEYWORDS = [
     "transformer",
     "bert",
@@ -223,11 +257,20 @@ class CRUXpiderEngine:
         result: dict[str, Any] = {
             "query_title": paper_title,
             "title": paper_title,
+            "year": None,
             "journal": None,
             "journal_conference": None,
             "pdf_url": None,
             "categories": [],
             "ai_related": "NO",
+            "research_profile": self._build_research_profile(
+                title=paper_title,
+                categories=[],
+                methods=[],
+                datasets=[],
+                repository_candidates=[],
+                abstract_text="",
+            ),
             "datasets": [],
             "dataset_candidates": [],
             "methods": [],
@@ -254,6 +297,7 @@ class CRUXpiderEngine:
         result.update(
             {
                 "title": best.title or paper_title,
+                "year": best.year,
                 "journal": _first_non_empty([candidate.venue for candidate in merged.candidates]),
                 "journal_conference": _first_non_empty([candidate.venue for candidate in merged.candidates]),
                 "pdf_url": _first_non_empty([candidate.pdf_url for candidate in merged.candidates]),
@@ -292,6 +336,14 @@ class CRUXpiderEngine:
             result["repository_url"] = repositories[0]["url"]
         else:
             result["repository_url"] = self._fallback_repository_search(best.title or paper_title)
+        result["research_profile"] = self._build_research_profile(
+            title=result["title"],
+            categories=result["categories"],
+            methods=result["methods"],
+            datasets=result["datasets"],
+            repository_candidates=result["repository_candidates"],
+            abstract_text=_first_non_empty([candidate.abstract_text for candidate in merged.candidates]) or "",
+        )
         if repo_warning:
             result["warnings"].append(repo_warning)
         if source_status.get("paperswithcode_redirect_target"):
@@ -300,6 +352,59 @@ class CRUXpiderEngine:
             )
         self._cache_set(cache_key, result)
         return result
+
+    def explore_research_assets(
+        self,
+        query: str,
+        mode: str = "topic",
+        max_papers: int = 5,
+    ) -> dict[str, Any]:
+        max_papers = max(3, min(max_papers, 8))
+        seeds = self._search_openalex_free_text(query, max_papers=max_papers)
+        representative_papers: list[dict[str, Any]] = []
+
+        with ThreadPoolExecutor(max_workers=min(4, max(1, len(seeds)))) as executor:
+            future_map = {
+                executor.submit(self.analyze_single_paper, seed["title"]): seed
+                for seed in seeds[:max_papers]
+                if seed.get("title")
+            }
+            for future in as_completed(future_map):
+                seed = future_map[future]
+                try:
+                    enriched = future.result()
+                    enriched["seed_citation_count"] = seed.get("citation_count", 0)
+                    representative_papers.append(enriched)
+                except Exception as exc:
+                    logger.warning("Research asset exploration failed for %s: %s", seed.get("title"), exc)
+
+        representative_papers = sorted(
+            representative_papers,
+            key=lambda item: (item.get("confidence", 0.0), item.get("citation_count", 0)),
+            reverse=True,
+        )[:max_papers]
+
+        common_methods = self._aggregate_named_assets(
+            [paper.get("methods", []) for paper in representative_papers],
+            limit=8,
+        )
+        common_datasets = self._aggregate_dataset_assets(representative_papers, limit=8)
+        code_repositories = self._aggregate_repository_assets(representative_papers, limit=6)
+        aggregated_profile = self._aggregate_research_profiles(
+            [paper.get("research_profile", {}) for paper in representative_papers]
+        )
+
+        return {
+            "query": query,
+            "mode": mode,
+            "research_profile": aggregated_profile,
+            "representative_papers": representative_papers,
+            "common_methods": common_methods,
+            "common_datasets": common_datasets,
+            "code_repositories": code_repositories,
+            "reading_path": self._build_reading_path(representative_papers),
+            "total": len(representative_papers),
+        }
 
     @lru_cache(maxsize=1)
     def get_source_status(self) -> dict[str, Any]:
@@ -363,6 +468,33 @@ class CRUXpiderEngine:
         )
 
         return status
+
+    def _search_openalex_free_text(self, query: str, max_papers: int = 5) -> list[dict[str, Any]]:
+        try:
+            response = self.session.get(
+                OPENALEX_API_BASE,
+                params=self._with_mailto({"search": query, "per-page": max_papers}),
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+            response.raise_for_status()
+        except requests.RequestException as exc:
+            logger.warning("OpenAlex free-text exploration failed: %s", exc)
+            return []
+
+        results = []
+        for item in response.json().get("results", []):
+            title = item.get("display_name")
+            if not title:
+                continue
+            results.append(
+                {
+                    "title": title,
+                    "year": item.get("publication_year"),
+                    "citation_count": int(item.get("cited_by_count") or 0),
+                    "venue": self._openalex_source_name(item),
+                }
+            )
+        return results
 
     def find_relevant_papers(self, paper_title: str, max_papers: int = 10) -> list[dict[str, Any]]:
         cache_key = ("related", f"{_normalize_title(paper_title)}::{int(max_papers)}")
@@ -1616,6 +1748,241 @@ class CRUXpiderEngine:
                 if target:
                     grouped[target].append(paper)
         return grouped
+
+    def _build_research_profile(
+        self,
+        title: str,
+        categories: list[str],
+        methods: list[str],
+        datasets: list[Any],
+        repository_candidates: list[dict[str, Any]],
+        abstract_text: str,
+    ) -> dict[str, Any]:
+        text_parts = [title, abstract_text, " ".join(categories), " ".join(str(method) for method in methods)]
+        text = " ".join(part for part in text_parts if part).lower()
+        domains = self._collect_profile_tags(text, DOMAIN_KEYWORDS)
+        tasks = self._collect_profile_tags(text, TASK_KEYWORDS)
+        method_families = self._collect_method_families(text, methods)
+        artifact_profile = self._collect_artifact_profile(text, datasets, repository_candidates)
+        community_fit = self._collect_community_fit(domains, categories, title)
+        reproducibility_level = self._infer_reproducibility_level(datasets, repository_candidates)
+
+        summary_parts = []
+        if domains:
+            summary_parts.append(domains[0])
+        if tasks:
+            summary_parts.append(tasks[0])
+        if method_families:
+            summary_parts.append(method_families[0])
+        if any(isinstance(item, dict) and item.get("mapping_status") == "linked_dataset" for item in datasets):
+            summary_parts.append("dataset-linked")
+        elif datasets:
+            summary_parts.append("dataset-aware")
+        summary_parts.append(f"reproducibility {reproducibility_level}")
+
+        return {
+            "domains": domains,
+            "tasks": tasks,
+            "method_families": method_families,
+            "artifact_profile": artifact_profile,
+            "community_fit": community_fit,
+            "reproducibility_level": reproducibility_level,
+            "summary": " + ".join(summary_parts) if summary_parts else "metadata pending",
+        }
+
+    def _aggregate_research_profiles(self, profiles: list[dict[str, Any]]) -> dict[str, Any]:
+        def top_values(field_name: str, limit: int = 4) -> list[str]:
+            counts: dict[str, int] = {}
+            for profile in profiles:
+                for value in profile.get(field_name, []):
+                    counts[value] = counts.get(value, 0) + 1
+            return [item for item, _ in sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))[:limit]]
+
+        reproducibility = "low"
+        if any(profile.get("reproducibility_level") == "high" for profile in profiles):
+            reproducibility = "high"
+        elif any(profile.get("reproducibility_level") == "medium" for profile in profiles):
+            reproducibility = "medium"
+
+        domains = top_values("domains")
+        tasks = top_values("tasks")
+        method_families = top_values("method_families")
+        artifact_profile = top_values("artifact_profile")
+        community_fit = top_values("community_fit")
+        summary_parts = [part for part in [domains[:1], tasks[:1], method_families[:1]] if part]
+        summary = " + ".join(part[0] for part in summary_parts)
+        if summary:
+            summary = f"{summary} + reproducibility {reproducibility}"
+        else:
+            summary = f"research assets + reproducibility {reproducibility}"
+        return {
+            "domains": domains,
+            "tasks": tasks,
+            "method_families": method_families,
+            "artifact_profile": artifact_profile,
+            "community_fit": community_fit,
+            "reproducibility_level": reproducibility,
+            "summary": summary,
+        }
+
+    def _aggregate_named_assets(self, groups: list[list[str]], limit: int = 8) -> list[dict[str, Any]]:
+        counts: dict[str, int] = {}
+        for group in groups:
+            for item in group:
+                counts[item] = counts.get(item, 0) + 1
+        return [
+            {"name": name, "count": count}
+            for name, count in sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))[:limit]
+        ]
+
+    def _aggregate_dataset_assets(self, papers: list[dict[str, Any]], limit: int = 8) -> list[dict[str, Any]]:
+        counts: dict[str, dict[str, Any]] = {}
+        for paper in papers:
+            for dataset in paper.get("datasets", []):
+                if isinstance(dataset, dict):
+                    name = dataset.get("name")
+                    if not name:
+                        continue
+                    entry = counts.setdefault(
+                        name,
+                        {
+                            "name": name,
+                            "count": 0,
+                            "mapping_status": dataset.get("mapping_status", "possible_mention"),
+                            "url": dataset.get("url", ""),
+                            "source": dataset.get("source", ""),
+                        },
+                    )
+                    entry["count"] += 1
+                    if dataset.get("mapping_status") == "linked_dataset":
+                        entry["mapping_status"] = "linked_dataset"
+                    if not entry.get("url") and dataset.get("url"):
+                        entry["url"] = dataset["url"]
+                else:
+                    name = str(dataset).strip()
+                    if not name:
+                        continue
+                    entry = counts.setdefault(
+                        name,
+                        {"name": name, "count": 0, "mapping_status": "possible_mention", "url": "", "source": "heuristic"},
+                    )
+                    entry["count"] += 1
+        return sorted(counts.values(), key=lambda item: (-item["count"], item["name"]))[:limit]
+
+    def _aggregate_repository_assets(self, papers: list[dict[str, Any]], limit: int = 6) -> list[dict[str, Any]]:
+        repositories: dict[str, dict[str, Any]] = {}
+        for paper in papers:
+            for candidate in paper.get("repository_candidates", []):
+                key = candidate.get("url") or candidate.get("name")
+                if not key:
+                    continue
+                current = repositories.setdefault(
+                    key,
+                    {
+                        "name": candidate.get("name", "repository"),
+                        "url": candidate.get("url", ""),
+                        "score": candidate.get("score", 0.0),
+                        "count": 0,
+                    },
+                )
+                current["count"] += 1
+                current["score"] = max(current["score"], candidate.get("score", 0.0))
+        return sorted(repositories.values(), key=lambda item: (-item["count"], -item["score"], item["name"]))[:limit]
+
+    def _build_reading_path(self, papers: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        ordered = sorted(
+            papers,
+            key=lambda item: (
+                item.get("year") or 9999,
+                -int(item.get("citation_count") or 0),
+            ),
+        )
+        reading_path = []
+        for index, paper in enumerate(ordered[:5]):
+            stage = "recent follow-up"
+            if index == 0:
+                stage = "foundation"
+            elif index == 1:
+                stage = "bridge"
+            reading_path.append(
+                {
+                    "title": paper.get("title", "Untitled paper"),
+                    "year": paper.get("year"),
+                    "stage": stage,
+                    "url": paper.get("landing_page_url") or paper.get("pdf_url") or "",
+                }
+            )
+        return reading_path
+
+    def _collect_profile_tags(self, text: str, mapping: dict[str, list[str]]) -> list[str]:
+        hits: list[str] = []
+        for label, keywords in mapping.items():
+            if any(keyword in text for keyword in keywords):
+                hits.append(label)
+        return hits[:5]
+
+    def _collect_method_families(self, text: str, methods: list[str]) -> list[str]:
+        lowered_methods = " ".join(methods).lower()
+        families = []
+        for label, keywords in METHOD_FAMILY_KEYWORDS.items():
+            if any(keyword in text or keyword in lowered_methods for keyword in keywords):
+                families.append(label)
+        return _dedupe_strings(families)[:5]
+
+    def _collect_artifact_profile(
+        self,
+        text: str,
+        datasets: list[Any],
+        repository_candidates: list[dict[str, Any]],
+    ) -> list[str]:
+        artifacts: list[str] = []
+        if repository_candidates:
+            artifacts.append("code")
+            if any(candidate.get("name", "").lower().endswith((".ckpt", ".pt", ".pth")) for candidate in repository_candidates):
+                artifacts.append("model weights")
+        if datasets:
+            artifacts.append("dataset")
+            if any(isinstance(item, dict) and item.get("mapping_status") == "linked_dataset" for item in datasets):
+                artifacts.append("benchmark")
+        for label, keywords in ARTIFACT_PROFILE_KEYWORDS.items():
+            if any(keyword in text for keyword in keywords):
+                artifacts.append(label)
+        return _dedupe_strings(artifacts)[:6]
+
+    def _collect_community_fit(self, domains: list[str], categories: list[str], title: str) -> list[str]:
+        fits: list[str] = []
+        lowered_categories = " ".join(categories).lower()
+        lowered_title = title.lower()
+        if any(domain in {"materials", "chemistry", "biology", "medicine", "physics", "climate"} for domain in domains):
+            fits.append("AI4Science")
+        if "cs.cv" in lowered_categories or "vision" in lowered_title:
+            fits.append("CV")
+        if "cs.cl" in lowered_categories or "language" in lowered_title:
+            fits.append("NLP")
+        if "biology" in domains or "medicine" in domains:
+            fits.append("bio")
+        if "chemistry" in domains:
+            fits.append("chem")
+        if "materials" in domains:
+            fits.append("materials")
+        if not fits and domains:
+            fits.append(domains[0])
+        return _dedupe_strings(fits)[:5]
+
+    def _infer_reproducibility_level(
+        self,
+        datasets: list[Any],
+        repository_candidates: list[dict[str, Any]],
+    ) -> str:
+        linked_datasets = sum(
+            1 for item in datasets
+            if isinstance(item, dict) and item.get("mapping_status") == "linked_dataset"
+        )
+        if repository_candidates and linked_datasets:
+            return "high"
+        if repository_candidates or datasets:
+            return "medium"
+        return "low"
 
     def _infer_ai_related(self, categories: list[str]) -> str:
         lowered = {category.lower() for category in categories}

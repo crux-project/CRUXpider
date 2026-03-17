@@ -35,6 +35,7 @@
                             <nav class="nav nav-pills flex-column">
                                 <a class="nav-link" href="#overview">概述</a>
                                 <a class="nav-link" href="#search">搜索论文</a>
+                                <a class="nav-link" href="#explore">研究资产探索</a>
                                 <a class="nav-link" href="#relevant">相关论文</a>
                                 <a class="nav-link" href="#batch">批量处理</a>
                                 <a class="nav-link" href="#status">状态检查</a>
@@ -71,15 +72,61 @@
                             <h6 class="mt-3">响应示例：</h6>
                             <pre><code class="language-json">{
   "title": "Attention Is All You Need",
+  "year": 2017,
   "journal": null,
   "pdf_url": "http://arxiv.org/pdf/1706.03762v7",
   "categories": ["cs.CL", "cs.LG"],
   "ai_related": "YES",
-  "paper_id": null,
+  "research_profile": {
+    "domains": ["ai"],
+    "tasks": ["generation"],
+    "method_families": ["transformer"],
+    "artifact_profile": ["code", "dataset"],
+    "community_fit": ["NLP"],
+    "reproducibility_level": "high"
+  },
   "datasets": [],
   "methods": [],
   "repository_url": null,
   "error": null
+}</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="explore" class="mb-5">
+                    <h2>研究资产探索</h2>
+                    <p>基于研究主题或研究领域聚合代表论文、常见数据集、方法族和代码仓库。</p>
+                    <div class="card">
+                        <div class="card-header">
+                            <code>POST /api/explore_assets</code>
+                        </div>
+                        <div class="card-body">
+                            <h6>请求体：</h6>
+                            <pre><code class="language-json">{
+  "query": "perovskite bandgap prediction",
+  "mode": "topic",
+  "max_papers": 5
+}</code></pre>
+
+                            <h6 class="mt-3">响应示例：</h6>
+                            <pre><code class="language-json">{
+  "query": "perovskite bandgap prediction",
+  "mode": "topic",
+  "research_profile": {
+    "domains": ["materials"],
+    "tasks": ["property prediction"],
+    "method_families": ["graph neural network"],
+    "artifact_profile": ["dataset", "code"],
+    "community_fit": ["AI4Science", "materials"],
+    "reproducibility_level": "medium"
+  },
+  "representative_papers": [],
+  "common_methods": [],
+  "common_datasets": [],
+  "code_repositories": [],
+  "reading_path": [],
+  "total": 0
 }</code></pre>
                         </div>
                     </div>
