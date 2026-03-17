@@ -1,54 +1,45 @@
-<svg width="1600" height="520" viewBox="0 0 1600 520" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="1600" height="520" fill="#07111D"/>
-  <rect x="0" y="0" width="1600" height="520" fill="url(#bg)"/>
-  <g opacity="0.18">
-    <circle cx="1310" cy="96" r="220" fill="#38BDF8"/>
-    <circle cx="1220" cy="420" r="250" fill="#0F766E"/>
-    <circle cx="310" cy="120" r="180" fill="#F59E0B"/>
+<svg width="1600" height="420" viewBox="0 0 1600 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1600" height="420" fill="#08111B"/>
+  <rect width="1600" height="420" fill="url(#bg)"/>
+
+  <g opacity="0.16">
+    <circle cx="1320" cy="90" r="210" fill="#38BDF8"/>
+    <circle cx="1390" cy="360" r="230" fill="#0F766E"/>
+    <circle cx="180" cy="360" r="180" fill="#F59E0B"/>
   </g>
-  <g opacity="0.12" stroke="#E2E8F0">
-    <path d="M1040 120C1110 120 1150 170 1210 170C1270 170 1300 130 1370 130C1440 130 1480 180 1540 180"/>
-    <path d="M1010 180C1080 180 1120 230 1180 230C1240 230 1280 190 1350 190C1420 190 1460 240 1520 240"/>
-    <path d="M980 240C1050 240 1090 290 1150 290C1210 290 1250 250 1320 250C1390 250 1430 300 1490 300"/>
+
+  <g opacity="0.1" stroke="#D6E3F0" stroke-width="2">
+    <path d="M930 132H1490"/>
+    <path d="M930 176H1490"/>
+    <path d="M930 220H1490"/>
+    <path d="M930 264H1490"/>
+    <path d="M930 308H1490"/>
   </g>
+
+  <rect x="88" y="86" width="156" height="156" rx="32" fill="#0F172A" stroke="#38BDF8" stroke-width="3"/>
+  <g transform="translate(111 112) scale(0.24)">
+    <path d="M369.3-31c11.9-3.5 24.4 2.7 29 13.9l.8 2.3 40 136c2.5 8.4 .1 17.5-6.1 23.7l-64.1 64.1 76.4-20.8 19.9-59.8 .9-2.3c5-11.1 17.7-16.8 29.5-12.9 11.8 3.9 18.5 16.1 15.8 28l-.7 2.4-24 72c-2.5 7.6-8.7 13.4-16.5 15.6l-91.1 24.8 91.1 24.8c7.7 2.1 13.9 8 16.5 15.6l24 72 .7 2.4c2.7 11.9-4.1 24.1-15.8 28-11.8 3.9-24.5-1.8-29.5-12.9l-.9-2.3-19.9-59.8-76.4-20.8 64.1 64.1c6.1 6.1 8.5 15.1 6.2 23.4l-40 144-.8 2.3c-4.4 11.3-16.8 17.7-28.8 14.4-12-3.3-19.3-15.2-17.2-27.2l.5-2.4 36.2-130.5-37.2-37.2C351 406 308.4 448 256 448s-95-42-96-94.1l-37 37 36 122.3 .6 2.4c2.2 11.9-4.9 23.9-16.8 27.4-11.9 3.5-24.4-2.7-29-13.9l-.8-2.3-40-136c-2.5-8.4-.1-17.5 6.1-23.8l64.1-64.1-76.4 20.8-19.9 59.8-.9 2.3c-5 11.1-17.7 16.8-29.5 12.9s-18.5-16.1-15.8-28l.7-2.4 24-72c2.5-7.6 8.7-13.4 16.5-15.6l91.1-24.8-91.1-24.8c-7.7-2.1-13.9-8-16.5-15.6l-24-72-.7-2.4c-2.7-11.9 4.1-24.1 15.8-28s24.5 1.8 29.5 12.9l.9 2.3 19.9 59.8 76.4 20.8-64.1-64.1c-6.2-6.2-8.5-15.3-6.1-23.7l40-136 .8-2.3c4.6-11.3 17.1-17.4 29-13.9 11.9 3.5 19 15.5 16.8 27.4l-.6 2.4-36 122.3 53 53c1-43.3 36.4-78.1 79.9-78.1s78.9 34.8 79.9 78.2l53.1-53.1-36-122.3-.6-2.4c-2.2-12 4.9-23.9 16.8-27.4z" fill="#F8FAFC"/>
+  </g>
+
+  <text x="286" y="162" font-family="Arial, Helvetica, sans-serif" font-size="84" font-weight="700" fill="#F8FAFC">CRUXpider</text>
+  <text x="286" y="214" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#C5D2E0">Academic paper analysis from titles.</text>
+
   <g>
-    <rect x="92" y="92" width="180" height="180" rx="36" fill="#0F172A" stroke="#38BDF8" stroke-width="3"/>
-    <path d="M142 170C164 135 202 120 228 128C240 132 248 140 252 152C257 166 251 182 239 193C228 203 212 209 197 216C178 224 162 237 154 255" stroke="#38BDF8" stroke-width="12" stroke-linecap="round"/>
-    <path d="M132 205C118 202 103 207 96 219" stroke="#F8FAFC" stroke-width="7" stroke-linecap="round"/>
-    <path d="M233 101C250 92 272 98 282 114" stroke="#F8FAFC" stroke-width="7" stroke-linecap="round"/>
-    <circle cx="196" cy="170" r="10" fill="#F59E0B"/>
+    <rect x="288" y="270" width="180" height="46" rx="23" fill="#0F766E"/>
+    <text x="325" y="300" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#F8FAFC">Flask Web UI</text>
+
+    <rect x="486" y="270" width="160" height="46" rx="23" fill="#1D4ED8"/>
+    <text x="519" y="300" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#F8FAFC">JSON API</text>
+
+    <rect x="664" y="270" width="232" height="46" rx="23" fill="#B45309"/>
+    <text x="699" y="300" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#F8FAFC">CSV Batch Mode</text>
   </g>
-  <g fill="#E2E8F0">
-    <text x="320" y="170" font-family="Arial, Helvetica, sans-serif" font-size="88" font-weight="700">CRUXpider</text>
-    <text x="320" y="235" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="400" fill="#B6C2D1">
-      Title-first academic paper analysis with arXiv, OpenAlex, and reproducibility-oriented code search fallback.
-    </text>
-  </g>
-  <g>
-    <rect x="322" y="290" width="184" height="44" rx="22" fill="#0F766E"/>
-    <text x="357" y="319" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#F8FAFC">Flask Web UI</text>
-    <rect x="524" y="290" width="170" height="44" rx="22" fill="#1D4ED8"/>
-    <text x="555" y="319" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#F8FAFC">JSON API</text>
-    <rect x="711" y="290" width="178" height="44" rx="22" fill="#B45309"/>
-    <text x="739" y="319" font-family="Arial, Helvetica, sans-serif" font-size="21" font-weight="700" fill="#F8FAFC">CSV Batch Mode</text>
-  </g>
-  <g>
-    <rect x="1000" y="118" width="420" height="260" rx="28" fill="#0B1625" stroke="#223348" stroke-width="2"/>
-    <text x="1038" y="164" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" fill="#F8FAFC">Pipeline</text>
-    <circle cx="1060" cy="212" r="10" fill="#38BDF8"/>
-    <text x="1084" y="219" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#D7E2EE">Paper title input</text>
-    <circle cx="1060" cy="258" r="10" fill="#22C55E"/>
-    <text x="1084" y="265" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#D7E2EE">arXiv metadata + PDF</text>
-    <circle cx="1060" cy="304" r="10" fill="#F59E0B"/>
-    <text x="1084" y="311" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#D7E2EE">OpenAlex venue + related works</text>
-    <circle cx="1060" cy="350" r="10" fill="#F97316"/>
-    <text x="1084" y="357" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#D7E2EE">GitHub repository search fallback</text>
-  </g>
+
   <defs>
-    <linearGradient id="bg" x1="92" y1="54" x2="1518" y2="492" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#08101B"/>
-      <stop offset="0.5" stop-color="#0E2233"/>
-      <stop offset="1" stop-color="#0A1726"/>
+    <linearGradient id="bg" x1="80" y1="50" x2="1520" y2="380" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#08101A"/>
+      <stop offset="0.48" stop-color="#102131"/>
+      <stop offset="1" stop-color="#0A1624"/>
     </linearGradient>
   </defs>
 </svg>
