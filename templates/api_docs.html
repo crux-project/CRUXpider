@@ -96,7 +96,7 @@
 
                 <section id="explore" class="mb-5">
                     <h2>研究资产探索</h2>
-                    <p>统一入口支持三种模式：`auto` 自动判断，`topic` 返回资产发现视图，`area` 返回研究路线图视图。</p>
+                    <p>统一入口会同时返回资产发现和研究路线图所需信息。</p>
                     <div class="card">
                         <div class="card-header">
                             <code>POST /api/explore_assets</code>
@@ -105,15 +105,13 @@
                             <h6>请求体：</h6>
                             <pre><code class="language-json">{
   "query": "perovskite bandgap prediction",
-  "mode": "auto",
   "max_papers": 5
 }</code></pre>
 
                             <h6 class="mt-3">响应示例：</h6>
                             <pre><code class="language-json">{
   "query": "perovskite bandgap prediction",
-  "mode": "topic",
-  "requested_mode": "auto",
+  "primary_view": "topic",
   "research_profile": {
     "domains": ["materials"],
     "tasks": ["property prediction"],
@@ -127,10 +125,15 @@
     "headline": "materials + property prediction + graph neural network + reproducibility medium",
     "focus": [{"label": "datasets", "count": 3}]
   },
+  "research_brief": {
+    "headline": "materials + property prediction + graph neural network + reproducibility medium"
+  },
   "common_methods": [],
   "common_datasets": [],
   "benchmark_assets": [],
   "code_repositories": [],
+  "reading_path": [],
+  "subdirection_layers": [],
   "total_assets": 0
 }</code></pre>
                         </div>

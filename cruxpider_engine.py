@@ -453,35 +453,23 @@ class CRUXpiderEngine:
             [paper.get("research_profile", {}) for paper in representative_papers],
             query_profile=query_profile,
         )
-        if mode == "topic":
-            return {
-                "query": query,
-                "mode": mode,
-                "requested_mode": requested_mode,
-                "research_profile": aggregated_profile,
-                "common_methods": common_methods,
-                "common_datasets": common_datasets,
-                "benchmark_assets": benchmark_assets,
-                "code_repositories": code_repositories,
-                "asset_brief": self._build_topic_asset_brief(
-                    query=query,
-                    aggregated_profile=aggregated_profile,
-                    common_datasets=common_datasets,
-                    common_methods=common_methods,
-                    benchmark_assets=benchmark_assets,
-                    code_repositories=code_repositories,
-                ),
-                "total_assets": len(common_methods) + len(common_datasets) + len(benchmark_assets) + len(code_repositories),
-            }
 
         return {
             "query": query,
-            "mode": mode,
-            "requested_mode": requested_mode,
+            "primary_view": mode,
             "research_profile": aggregated_profile,
+            "asset_brief": self._build_topic_asset_brief(
+                query=query,
+                aggregated_profile=aggregated_profile,
+                common_datasets=common_datasets,
+                common_methods=common_methods,
+                benchmark_assets=benchmark_assets,
+                code_repositories=code_repositories,
+            ),
             "representative_papers": representative_papers,
             "common_methods": common_methods,
             "common_datasets": common_datasets,
+            "benchmark_assets": benchmark_assets,
             "code_repositories": code_repositories,
             "reading_path": self._build_reading_path(representative_papers),
             "subdirection_layers": self._build_subdirection_layers(representative_papers),
@@ -493,6 +481,7 @@ class CRUXpiderEngine:
                 common_methods=common_methods,
                 code_repositories=code_repositories,
             ),
+            "total_assets": len(common_methods) + len(common_datasets) + len(benchmark_assets) + len(code_repositories),
             "total": len(representative_papers),
         }
 

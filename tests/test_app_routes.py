@@ -183,8 +183,7 @@ class AppRoutesTestCase(unittest.TestCase):
     def test_explore_assets_route(self, mock_explore):
         mock_explore.return_value = {
             "query": "perovskite bandgap prediction",
-            "mode": "topic",
-            "requested_mode": "auto",
+            "primary_view": "topic",
             "research_profile": {
                 "domains": ["materials"],
                 "tasks": ["property prediction"],
@@ -202,9 +201,18 @@ class AppRoutesTestCase(unittest.TestCase):
                 "headline": "materials + property prediction + graph neural network + reproducibility medium",
                 "focus": [{"label": "datasets", "count": 1}],
                 "actions": ["Start by checking dataset candidates around Materials Project."],
+            },
+            "representative_papers": [],
+            "reading_path": [],
+            "subdirection_layers": [],
+            "research_brief": {
+                "headline": "materials + property prediction + graph neural network + reproducibility medium",
+                "starter_paper": {},
+                "actions": ["Start by checking dataset candidates around Materials Project."],
                 "availability": {"papers": 0, "datasets": 1, "methods": 1, "repositories": 1},
             },
             "total_assets": 4,
+            "total": 0,
         }
 
         response = self.client.post(
@@ -214,10 +222,10 @@ class AppRoutesTestCase(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         payload = response.get_json()
-        self.assertEqual(payload["mode"], "topic")
-        self.assertEqual(payload["requested_mode"], "auto")
+        self.assertEqual(payload["primary_view"], "topic")
         self.assertEqual(payload["research_profile"]["domains"][0], "materials")
         self.assertIn("asset_brief", payload)
+        self.assertIn("research_brief", payload)
         self.assertIn("benchmark_assets", payload)
 
 
