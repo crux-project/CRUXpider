@@ -49,6 +49,14 @@ class EngineCacheTestCase(unittest.TestCase):
         self.assertIn("imagenet", datasets)
         self.assertIn("cifar-10", datasets)
 
+    def test_extract_methods_does_not_match_rag_inside_radiograph(self):
+        engine = CRUXpiderEngine()
+        methods, _ = engine._extract_methods_and_datasets(
+            ["Chest radiograph diagnosis with clinical labels"]
+        )
+
+        self.assertNotIn("rag", methods)
+
     def test_filtered_heuristic_datasets_prefers_title_aligned_terms(self):
         engine = CRUXpiderEngine()
         best = PaperCandidate(
@@ -79,6 +87,35 @@ class EngineCacheTestCase(unittest.TestCase):
         self.assertIn("graph neural network", profile["method_families"])
         self.assertIn("AI4Science", profile["community_fit"])
         self.assertEqual(profile["reproducibility_level"], "high")
+
+    def test_build_research_profile_keeps_materials_profile_focused(self):
+        engine = CRUXpiderEngine()
+        profile = engine._build_research_profile(
+            title="Perovskite bandgap prediction with graph neural networks",
+            categories=["materials informatics"],
+            methods=["graph neural network"],
+            datasets=[],
+            repository_candidates=[],
+            abstract_text="This work studies perovskite crystals and materials property prediction.",
+        )
+
+        self.assertEqual(profile["domains"][0], "materials")
+        self.assertNotIn("biology", profile["domains"])
+        self.assertNotIn("medicine", profile["domains"])
+
+    def test_build_research_profile_infers_medicine_from_radiology_context(self):
+        engine = CRUXpiderEngine()
+        profile = engine._build_research_profile(
+            title="Chest radiograph diagnosis with transformer models",
+            categories=["medical imaging"],
+            methods=["transformer"],
+            datasets=[{"name": "CheXpert", "mapping_status": "linked_dataset", "url": "https://example.com"}],
+            repository_candidates=[],
+            abstract_text="A clinical radiology benchmark for disease diagnosis from patient chest X-rays.",
+        )
+
+        self.assertIn("medicine", profile["domains"])
+        self.assertIn("bio", profile["community_fit"])
 
     def test_merge_related_entry_deduplicates_similar_titles(self):
         engine = CRUXpiderEngine()

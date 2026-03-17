@@ -198,6 +198,11 @@ class AppRoutesTestCase(unittest.TestCase):
             "common_datasets": [{"name": "materials project", "count": 2, "mapping_status": "linked_dataset", "url": "https://example.com/dataset"}],
             "code_repositories": [{"name": "repo", "count": 1, "url": "https://github.com/example/repo", "score": 0.9}],
             "reading_path": [],
+            "research_brief": {
+                "headline": "materials + property prediction + graph neural network + reproducibility medium",
+                "starter_paper": {},
+                "actions": ["Start by checking dataset candidates around Materials Project."],
+            },
             "total": 0,
         }
 

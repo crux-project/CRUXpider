@@ -724,6 +724,9 @@ function displayResearchAssetResults(data, resultsId) {
     const lang = currentLanguage || 'zh';
     const labels = {
         zh: {
+            assistant_brief: '研究助手摘要',
+            start_here: '建议从这里开始',
+            next_actions: '下一步建议',
             representative_papers: '代表论文',
             common_methods: '常见方法族',
             common_datasets: '常见数据资产',
@@ -733,6 +736,9 @@ function displayResearchAssetResults(data, resultsId) {
             stage: '阶段',
         },
         en: {
+            assistant_brief: 'Research Assistant Brief',
+            start_here: 'Start Here',
+            next_actions: 'Next Actions',
             representative_papers: 'Representative Papers',
             common_methods: 'Common Method Families',
             common_datasets: 'Common Dataset Assets',
@@ -750,10 +756,7 @@ function displayResearchAssetResults(data, resultsId) {
                 <h4 class="mb-0"><i class="fas fa-compass me-2"></i>${escapeHtml(data.query)}</h4>
             </div>
             <div class="result-body">
-                <div class="info-item">
-                    <span class="info-label">${lang === 'en' ? 'Research Profile:' : '研究画像:'}</span>
-                    <span class="info-value">${formatResearchProfile(data.research_profile)}</span>
-                </div>
+                ${formatResearchBrief(data.research_brief, data.research_profile, t, lang)}
                 <div class="asset-grid">
                     <div class="asset-panel">
                         <div class="asset-panel-title">${t.common_methods}</div>
@@ -910,6 +913,33 @@ function formatRepresentativePapers(items) {
             <div class="mt-2">${formatResearchProfile(item.research_profile)}</div>
         </div>
     `).join('');
+}
+
+function formatResearchBrief(brief, profile, labels, lang) {
+    const headline = brief?.headline || profile?.summary || 'N/A';
+    const starter = brief?.starter_paper || {};
+    const actions = brief?.actions || [];
+    return `
+        <div class="assistant-brief">
+            <div class="assistant-headline">${escapeHtml(headline)}</div>
+            <div class="info-item">
+                <span class="info-label">${lang === 'en' ? 'Research Profile:' : '研究画像:'}</span>
+                <span class="info-value">${formatResearchProfile(profile)}</span>
+            </div>
+            <div class="asset-grid asset-grid-brief">
+                <div class="asset-panel asset-panel-brief">
+                    <div class="asset-panel-title">${labels.start_here}</div>
+                    <div class="assistant-line">
+                        ${starter.url ? `<a href="${escapeHtml(starter.url)}" target="_blank" class="dataset-link">${escapeHtml(starter.title || 'N/A')}</a>` : `<span>${escapeHtml(starter.title || 'N/A')}</span>`}
+                    </div>
+                </div>
+                <div class="asset-panel asset-panel-brief">
+                    <div class="asset-panel-title">${labels.next_actions}</div>
+                    ${actions.length > 0 ? actions.map(item => `<div class="assistant-line">${escapeHtml(item)}</div>`).join('') : '<div class="assistant-line">N/A</div>'}
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function formatConfidence(confidence) {
