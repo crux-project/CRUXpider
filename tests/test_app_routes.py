@@ -39,6 +39,7 @@ class AppRoutesTestCase(unittest.TestCase):
                 "semantic_scholar": True,
                 "crossref": True,
                 "datacite": True,
+                "openaire": True,
                 "github_api": True,
                 "github_search_fallback": True,
             },
@@ -121,6 +122,7 @@ class AppRoutesTestCase(unittest.TestCase):
             "semantic_scholar": True,
             "crossref": True,
             "datacite": True,
+            "openaire": True,
             "github_api": True,
             "github_search_fallback": True,
         }
@@ -131,6 +133,7 @@ class AppRoutesTestCase(unittest.TestCase):
         self.assertIn("semantic_scholar_available", payload)
         self.assertIn("crossref_available", payload)
         self.assertIn("datacite_available", payload)
+        self.assertIn("openaire_available", payload)
 
     @patch("app.engine.get_source_status")
     def test_health_route(self, mock_status):
@@ -142,6 +145,7 @@ class AppRoutesTestCase(unittest.TestCase):
             "semantic_scholar": True,
             "crossref": True,
             "datacite": True,
+            "openaire": True,
             "github_api": True,
             "github_search_fallback": True,
         }
@@ -152,6 +156,7 @@ class AppRoutesTestCase(unittest.TestCase):
         self.assertIn("semantic_scholar", payload["services"])
         self.assertIn("crossref", payload["services"])
         self.assertIn("datacite", payload["services"])
+        self.assertIn("openaire", payload["services"])
 
 
 if __name__ == "__main__":

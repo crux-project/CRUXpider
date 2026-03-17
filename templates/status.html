@@ -144,6 +144,19 @@
                     </div>
 
                     <div class="col-md-6 mb-4">
+                        <div class="card h-100 ${data.openaire_available ? 'border-success' : 'border-danger'}">
+                            <div class="card-body text-center">
+                                <i class="fas fa-project-diagram fa-3x mb-3 ${data.openaire_available ? 'text-success' : 'text-danger'}"></i>
+                                <h5 class="card-title">OpenAIRE ScholeXplorer</h5>
+                                <p class="card-text">论文到数据集公开关系链接</p>
+                                <span class="badge ${data.openaire_available ? 'bg-success' : 'bg-danger'} fs-6">
+                                    ${data.openaire_available ? '✓ 可用' : '✗ 不可用'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6 mb-4">
                         <div class="card h-100 ${data.github_api_available ? 'border-success' : 'border-danger'}">
                             <div class="card-body text-center">
                                 <i class="fab fa-github fa-3x mb-3 ${data.github_api_available ? 'text-success' : 'text-danger'}"></i>

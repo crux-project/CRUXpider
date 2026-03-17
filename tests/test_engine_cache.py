@@ -141,7 +141,9 @@ class EngineCacheTestCase(unittest.TestCase):
             "score": 0.88,
             "confidence_tier": "strong",
             "evidence": ["Public metadata links this dataset to the paper."],
-        }]), patch.object(engine, "_fetch_crossref_dataset_candidates", return_value=[]), patch.object(
+        }]), patch.object(engine, "_fetch_openaire_dataset_candidates", return_value=[]), patch.object(
+            engine, "_fetch_crossref_dataset_candidates", return_value=[]
+        ), patch.object(
             engine, "_fetch_openalex_dataset_candidates", return_value=[]
         ):
             datasets, warning = engine._discover_datasets(best, merged)
@@ -150,6 +152,59 @@ class EngineCacheTestCase(unittest.TestCase):
         self.assertEqual(datasets[0]["name"], "WMT Dataset")
         self.assertEqual(datasets[0]["source"], "datacite")
         self.assertEqual(datasets[0]["confidence_tier"], "strong")
+        self.assertEqual(datasets[0]["mapping_status"], "linked_dataset")
+
+    def test_discover_datasets_marks_heuristics_as_possible_mentions(self):
+        engine = CRUXpiderEngine()
+        best = PaperCandidate(
+            source="semantic_scholar",
+            source_id="paper-1",
+            title="Microsoft COCO: Common Objects in Context",
+            datasets=["coco"],
+            identifiers={"doi": "10.1000/test"},
+        )
+        merged = MergedPaper(candidates=[best], sources={"semantic_scholar"}, identifiers={"doi": "10.1000/test"}, score=0.9)
+
+        with patch.object(engine, "_fetch_openaire_dataset_candidates", return_value=[]), patch.object(
+            engine, "_fetch_datacite_dataset_candidates", return_value=[]
+        ), patch.object(engine, "_fetch_crossref_dataset_candidates", return_value=[]), patch.object(
+            engine, "_fetch_openalex_dataset_candidates", return_value=[]
+        ):
+            datasets, warning = engine._discover_datasets(best, merged)
+
+        self.assertIsNone(warning)
+        self.assertEqual(datasets[0]["name"], "coco")
+        self.assertEqual(datasets[0]["mapping_status"], "possible_mention")
+
+    def test_openaire_relation_to_dataset_candidate_parses_node(self):
+        engine = CRUXpiderEngine()
+
+        candidate = engine._openaire_relation_to_dataset_candidate(
+            {
+                "source": {"type": "publication", "title": "Paper"},
+                "target": {
+                    "type": "dataset",
+                    "title": "Linked Dataset",
+                    "publicationDate": "2024-01-01",
+                    "authors": [{"name": "Alice"}],
+                    "identifiers": [
+                        {
+                            "id": "10.5281/zenodo.1234",
+                            "idScheme": "doi",
+                            "idUrl": "https://doi.org/10.5281/zenodo.1234",
+                        }
+                    ],
+                },
+                "relType": {"name": "IsSupplementTo"},
+            },
+            "10.1000/test",
+        )
+
+        self.assertIsNotNone(candidate)
+        self.assertEqual(candidate["source"], "openaire")
+        self.assertEqual(candidate["doi"], "10.5281/zenodo.1234")
+        self.assertEqual(candidate["url"], "https://doi.org/10.5281/zenodo.1234")
+        self.assertEqual(candidate["year"], 2024)
 
 
 if __name__ == "__main__":

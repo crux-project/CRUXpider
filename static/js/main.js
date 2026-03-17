@@ -182,6 +182,7 @@ function clearAllHistory() {
 
 // HTML转义函数，防止XSS攻击
 function escapeHtml(text) {
+    const safeText = String(text ?? '');
     const map = {
         '&': '&amp;',
         '<': '&lt;',
@@ -189,7 +190,7 @@ function escapeHtml(text) {
         '"': '&quot;',
         "'": '&#039;'
     };
-    return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+    return safeText.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
 function initializeEventListeners() {
@@ -669,6 +670,7 @@ function formatDatasets(datasets) {
                             ${dataset.source ? `<span class="paper-meta-chip">${escapeHtml(dataset.source)}</span>` : ''}
                             ${dataset.score ? `<span class="paper-meta-chip">score: ${escapeHtml(dataset.score)}</span>` : ''}
                             <span class="dataset-tier dataset-tier-${escapeHtml(getDatasetTier(dataset))}">${escapeHtml(getDatasetTierLabel(dataset))}</span>
+                            ${isPossibleDatasetMention(dataset) ? `<span class="dataset-kind dataset-kind-mention">${escapeHtml(getDatasetMappingLabel())}</span>` : ''}
                         </div>
                         ${dataset.evidence && dataset.evidence.length > 0 ? `<div class="dataset-evidence">${dataset.evidence.map(item => `<div class="signal-line">${escapeHtml(item)}</div>`).join('')}</div>` : ''}
                     </div>
@@ -686,6 +688,10 @@ function getDatasetTier(dataset) {
     return dataset.confidence_tier || 'weak';
 }
 
+function isPossibleDatasetMention(dataset) {
+    return (dataset.mapping_status === 'possible_mention') || !dataset.url;
+}
+
 function getDatasetTierLabel(dataset) {
     const lang = currentLanguage || 'zh';
     const labels = {
@@ -693,6 +699,11 @@ function getDatasetTierLabel(dataset) {
         en: { strong: 'Strong', medium: 'Medium', weak: 'Weak' },
     };
     return labels[lang][getDatasetTier(dataset)] || labels[lang].weak;
+}
+
+function getDatasetMappingLabel() {
+    const lang = currentLanguage || 'zh';
+    return lang === 'zh' ? '可能的数据集提及' : 'Possible dataset mention';
 }
 
 function formatConfidence(confidence) {

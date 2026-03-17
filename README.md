@@ -16,7 +16,7 @@ Academic paper analysis from titles, with multi-source paper resolution, confide
 ## Highlights
 
 - `Single paper analysis`: multi-source title resolution, venue, PDF, categories, confidence, identifiers, and ranked code candidates
-- `Dataset discovery`: public-info-first candidates from DataCite, Crossref, OpenAlex, plus heuristic text extraction
+- `Dataset discovery`: public-info-first candidates from OpenAIRE ScholeXplorer, DataCite, Crossref, OpenAlex, plus heuristic text extraction
 - `Related papers`: Semantic Scholar + OpenAlex ranking pipeline with explanations from venue, year, topic, method, author, and citation signals, plus grouped research-navigation views
 - `CSV batch mode`: title list in, enriched CSV out
 - `Web UI + JSON API`: simple to use locally or extend in other tooling
@@ -36,6 +36,8 @@ Academic paper analysis from titles, with multi-source paper resolution, confide
   Source for DOI-oriented bibliographic enrichment and public dataset metadata search.
 - `DataCite`
   Source for public dataset DOI metadata and related-identifier evidence.
+- `OpenAIRE ScholeXplorer`
+  Source for public publication-to-dataset links when OpenAIRE exposes them.
 - `GitHub API`
   Source for ranked repository discovery when paper-to-code metadata is unavailable.
 
@@ -84,6 +86,7 @@ PYALEX_EMAIL=your_email@example.com
 CROSSREF_MAILTO=your_email@example.com
 SEMANTIC_SCHOLAR_API_KEY=
 GITHUB_TOKEN=
+OPENAIRE_API_BASE=https://api.openaire.eu/graph
 CRUXPIDER_REQUEST_TIMEOUT=12
 CRUXPIDER_MAX_BATCH_SIZE=50
 CRUXPIDER_RESULT_CACHE_TTL=900
@@ -135,6 +138,7 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
       "name": "WMT",
       "source": "datacite",
       "score": 0.81,
+      "mapping_status": "linked_dataset",
       "confidence_tier": "strong",
       "evidence": ["Public metadata links this dataset to the paper."]
     }
@@ -155,7 +159,7 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
 
 Related-paper responses now include `score`, `signal_count`, `sources`, short `reasons`, and grouped views such as `same_author`, `same_method`, `same_wave`, and `strong_follow_up`.
 
-Dataset responses now prefer public metadata over pure text guessing. CRUXpider queries public scholarly metadata from DataCite, Crossref, and OpenAlex first, then fills gaps with title-aligned public-text heuristics. Each dataset candidate also carries a `confidence_tier` so the UI can distinguish stronger evidence from weaker hints.
+Dataset responses now prefer public metadata over pure text guessing. CRUXpider queries public scholarly metadata from OpenAIRE ScholeXplorer, DataCite, Crossref, and OpenAlex first, then fills gaps with title-aligned public-text heuristics. Each dataset candidate carries a `confidence_tier`, and entries without a resolvable URL are surfaced as `possible dataset mention` instead of a confirmed dataset link.
 
 ## Running Tests
 

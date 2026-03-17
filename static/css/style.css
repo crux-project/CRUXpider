@@ -467,6 +467,20 @@ html {
     color: #991b1b;
 }
 
+.dataset-kind {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.dataset-kind-mention {
+    background: #e0f2fe;
+    color: #075985;
+}
+
 /* Loading Spinner */
 .spinner-border {
     width: 3rem;

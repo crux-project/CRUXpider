@@ -25,6 +25,7 @@ from config import (
     GITHUB_API_BASE,
     GITHUB_TOKEN,
     OPENALEX_API_BASE,
+    OPENAIRE_API_BASE,
     PAPERSWITHCODE_API_BASE,
     REQUEST_TIMEOUT_SECONDS,
     RESULT_CACHE_TTL_SECONDS,
@@ -189,6 +190,18 @@ def _normalize_doi(value: str | None) -> str:
     return normalized.strip()
 
 
+def _extract_year(value: str | None) -> int | None:
+    if not value:
+        return None
+    match = re.search(r"\b(19|20)\d{2}\b", value)
+    if not match:
+        return None
+    try:
+        return int(match.group(0))
+    except ValueError:
+        return None
+
+
 class CRUXpiderEngine:
     def __init__(self) -> None:
         self.session = requests.Session()
@@ -298,6 +311,7 @@ class CRUXpiderEngine:
             "semantic_scholar": False,
             "crossref": False,
             "datacite": False,
+            "openaire": False,
             "github_api": False,
             "github_search_fallback": True,
         }
@@ -331,6 +345,16 @@ class CRUXpiderEngine:
         status["datacite"] = self._check_endpoint(
             f"{DATACITE_API_BASE}/dois",
             params={"query": "imagenet", "resource-type-id": "dataset", "page[size]": 1},
+        )
+        status["openaire"] = self._check_endpoint(
+            f"{OPENAIRE_API_BASE}/v1/researchProducts/links",
+            params={
+                "sourcePid": "10.1109/cvpr.2009.5206848",
+                "sourceType": "publication",
+                "targetType": "dataset",
+                "page": 0,
+                "pageSize": 1,
+            },
         )
         status["github_api"] = self._check_endpoint(
             f"{GITHUB_API_BASE}/search/repositories",
@@ -783,6 +807,7 @@ class CRUXpiderEngine:
         warning = None
 
         public_fetchers = [
+            self._fetch_openaire_dataset_candidates,
             self._fetch_datacite_dataset_candidates,
             self._fetch_crossref_dataset_candidates,
             self._fetch_openalex_dataset_candidates,
@@ -818,6 +843,8 @@ class CRUXpiderEngine:
             key=lambda item: (item["score"], item["name"]),
             reverse=True,
         )
+        for candidate in ranked:
+            candidate["mapping_status"] = self._dataset_mapping_status(candidate)
         return ranked[:8], warning
 
     def _build_dataset_context(self, best: PaperCandidate, merged: MergedPaper) -> dict[str, Any]:
@@ -887,6 +914,47 @@ class CRUXpiderEngine:
                 }
                 related_identifiers = attrs.get("relatedIdentifiers") or []
                 self._score_dataset_candidate(candidate, context, related_identifiers)
+                candidates.append(candidate)
+        return candidates
+
+    def _fetch_openaire_dataset_candidates(self, context: dict[str, Any]) -> list[dict[str, Any]]:
+        source_pids: list[str] = []
+        doi = _normalize_doi(context["identifiers"].get("doi"))
+        arxiv_id = context["identifiers"].get("arxiv")
+        if doi:
+            source_pids.append(doi)
+        if arxiv_id:
+            source_pids.extend([arxiv_id, f"10.48550/arxiv.{arxiv_id.lower()}"])
+
+        candidates: list[dict[str, Any]] = []
+        for source_pid in _dedupe_strings(source_pids):
+            response = self.session.get(
+                f"{OPENAIRE_API_BASE}/v1/researchProducts/links",
+                params={
+                    "sourcePid": source_pid,
+                    "sourceType": "publication",
+                    "targetType": "dataset",
+                    "page": 0,
+                    "pageSize": 8,
+                },
+                timeout=REQUEST_TIMEOUT_SECONDS,
+            )
+            response.raise_for_status()
+            for relation in response.json().get("results", []):
+                candidate = self._openaire_relation_to_dataset_candidate(relation, source_pid)
+                if not candidate:
+                    continue
+                self._score_dataset_candidate(
+                    candidate,
+                    context,
+                    [
+                        {
+                            "relationType": candidate.get("relation_type", ""),
+                            "relatedIdentifier": source_pid,
+                            "relatedIdentifierType": "PID",
+                        }
+                    ],
+                )
                 candidates.append(candidate)
         return candidates
 
@@ -1084,6 +1152,59 @@ class CRUXpiderEngine:
     def _max_confidence_tier(self, left: str, right: str) -> str:
         order = {"weak": 0, "medium": 1, "strong": 2}
         return left if order.get(left, 0) >= order.get(right, 0) else right
+
+    def _dataset_mapping_status(self, candidate: dict[str, Any]) -> str:
+        if candidate.get("url"):
+            return "linked_dataset"
+        return "possible_mention"
+
+    def _openaire_relation_to_dataset_candidate(
+        self,
+        relation: dict[str, Any],
+        source_pid: str,
+    ) -> dict[str, Any] | None:
+        source_node = relation.get("source") or {}
+        target_node = relation.get("target") or {}
+        dataset_node = None
+        for node in (target_node, source_node):
+            if (node.get("type") or "").lower() == "dataset":
+                dataset_node = node
+                break
+        if dataset_node is None:
+            return None
+
+        identifiers = dataset_node.get("identifiers") or []
+        dataset_url = ""
+        dataset_doi = ""
+        for identifier in identifiers:
+            id_url = identifier.get("idUrl") or ""
+            if id_url and not dataset_url:
+                dataset_url = id_url
+            normalized = _normalize_doi(identifier.get("id"))
+            if identifier.get("idScheme", "").lower() == "doi" and normalized:
+                dataset_doi = normalized
+                if not dataset_url:
+                    dataset_url = f"https://doi.org/{dataset_doi}"
+
+        relation_type = ((relation.get("relType") or {}).get("name") or "").lower()
+        relation_label = (relation.get("relType") or {}).get("name") or "IsRelatedTo"
+        evidence = [f"OpenAIRE reports a {relation_label} link between the paper and this dataset."]
+        return {
+            "name": dataset_node.get("title") or "Untitled dataset",
+            "url": dataset_url,
+            "source": "openaire",
+            "doi": dataset_doi,
+            "year": _extract_year(dataset_node.get("publicationDate")),
+            "authors": [
+                author.get("name")
+                for author in dataset_node.get("authors", [])
+                if author.get("name")
+            ],
+            "score": 0.34,
+            "evidence": evidence,
+            "relation_type": relation_type,
+            "source_pid": source_pid,
+        }
 
     def _discover_repositories(
         self,
