@@ -148,16 +148,7 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
     "reproducibility_level": "high",
     "summary": "ai + generation + transformer + reproducibility high"
   },
-  "datasets": [
-    {
-      "name": "WMT",
-      "source": "datacite",
-      "score": 0.81,
-      "mapping_status": "linked_dataset",
-      "confidence_tier": "strong",
-      "evidence": ["Public metadata links this dataset to the paper."]
-    }
-  ],
+  "datasets": [],
   "dataset_candidates": [],
   "methods": ["transformer"],
   "confidence": 0.99,
