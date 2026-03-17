@@ -11,11 +11,13 @@
 
 # CRUXpider
 
-Academic paper analysis from titles, with multi-source paper resolution, confidence scoring, public-info-first dataset discovery, related-paper ranking, and ranked code discovery for reproducibility workflows.
+AI4Science research asset discovery from paper titles, topics, and research areas, with multi-source paper resolution, research profiles, public-info-first dataset discovery, related-paper ranking, and ranked code discovery for reproducibility workflows.
 
 ## Highlights
 
+- `Research Profile`: structured fields for domains, tasks, method families, artifact types, community fit, and reproducibility
 - `Single paper analysis`: multi-source title resolution, venue, PDF, categories, confidence, identifiers, and ranked code candidates
+- `Topic and area exploration`: find representative papers, datasets, methods, repositories, and reading paths for AI4Science themes
 - `Dataset discovery`: public-info-first candidates from OpenAIRE ScholeXplorer, DataCite, Crossref, OpenAlex, plus heuristic text extraction
 - `Related papers`: Semantic Scholar + OpenAlex ranking pipeline with explanations from venue, year, topic, method, author, and citation signals, plus grouped research-navigation views
 - `CSV batch mode`: title list in, enriched CSV out
@@ -110,6 +112,7 @@ This is the supported container path for contributors who do not want a local Py
 ### Endpoints
 
 - `POST /api/search_paper`
+- `POST /api/explore_assets`
 - `POST /api/find_relevant_papers`
 - `POST /api/batch_process`
 - `GET /api/status`
@@ -129,10 +132,20 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
 {
   "query_title": "Attention Is All You Need",
   "title": "Attention Is All You Need",
+  "year": 2017,
   "journal_conference": "NeurIPS",
   "pdf_url": "https://arxiv.org/pdf/1706.03762.pdf",
   "categories": ["cs.CL", "cs.LG"],
   "ai_related": "YES",
+  "research_profile": {
+    "domains": ["ai"],
+    "tasks": ["generation"],
+    "method_families": ["transformer"],
+    "artifact_profile": ["code", "dataset"],
+    "community_fit": ["NLP"],
+    "reproducibility_level": "high",
+    "summary": "ai + generation + transformer + reproducibility high"
+  },
   "datasets": [
     {
       "name": "WMT",
@@ -160,6 +173,8 @@ curl -X POST http://127.0.0.1:5003/api/search_paper \
 Related-paper responses now include `score`, `signal_count`, `sources`, short `reasons`, and grouped views such as `same_author`, `same_method`, `same_wave`, and `strong_follow_up`.
 
 Dataset responses now prefer public metadata over pure text guessing. CRUXpider queries public scholarly metadata from OpenAIRE ScholeXplorer, DataCite, Crossref, and OpenAlex first, then fills gaps with title-aligned public-text heuristics. Each dataset candidate carries a `confidence_tier`, and entries without a resolvable URL are surfaced as `possible dataset mention` instead of a confirmed dataset link.
+
+Research Profile replaces the old binary `ai_related` framing in the UI. CRUXpider now exposes `domains`, `tasks`, `method_families`, `artifact_profile`, `community_fit`, and `reproducibility_level` so the project can serve broader AI4Science communities such as materials, chemistry, biology, medicine, climate, and robotics.
 
 ## Running Tests
 
@@ -193,7 +208,7 @@ CRUXpider/
 - `Open-source safe defaults`
   Secrets are environment-based, and local artifacts are excluded by `.gitignore`.
 - `Research workflow first`
-  The UX is optimized around entering titles and getting actionable metadata back quickly.
+  The UX is optimized around entering titles, topics, or research areas and getting actionable assets back quickly.
 - `Latency-aware`
   Multi-source fetches run in parallel, and repeated lookups reuse a TTL cache.
 - `Open collaboration`
@@ -210,6 +225,7 @@ CRUXpider/
 
 - Improve title matching and ranking quality.
 - Improve method and dataset extraction with stronger scientific parsers.
+- Expand AI4Science domain taxonomies and research profile quality.
 - Add stronger repository verification beyond GitHub evidence ranking.
 - Add persistent caching and request metrics.
 - Add screenshot/demo assets for the repository homepage.

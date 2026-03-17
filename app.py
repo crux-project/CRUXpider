@@ -118,6 +118,22 @@ def find_relevant_papers():
     )
 
 
+@app.route("/api/explore_assets", methods=["POST"])
+def explore_assets():
+    data = request.get_json(silent=True) or {}
+    query = (data.get("query") or "").strip()
+    mode = (data.get("mode") or "topic").strip().lower()
+    max_papers = int(data.get("max_papers", 5))
+
+    if not query:
+        return jsonify({"error": "请输入研究主题或研究领域"}), 400
+    if mode not in {"topic", "area"}:
+        return jsonify({"error": "mode 必须是 topic 或 area"}), 400
+
+    result = engine.explore_research_assets(query, mode=mode, max_papers=max_papers)
+    return jsonify(result)
+
+
 @app.route("/api/batch_process", methods=["POST"])
 def batch_process():
     if "file" not in request.files:

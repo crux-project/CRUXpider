@@ -18,11 +18,21 @@ class AppRoutesTestCase(unittest.TestCase):
     def test_search_paper_returns_json(self, mock_analyze):
         mock_analyze.return_value = {
             "title": "Attention Is All You Need",
+            "year": 2017,
             "journal": "NeurIPS",
             "journal_conference": "NeurIPS",
             "pdf_url": "https://arxiv.org/pdf/1706.03762.pdf",
             "categories": ["cs.CL", "cs.LG"],
             "ai_related": "YES",
+            "research_profile": {
+                "domains": ["ai"],
+                "tasks": ["generation"],
+                "method_families": ["transformer"],
+                "artifact_profile": ["code", "dataset"],
+                "community_fit": ["NLP"],
+                "reproducibility_level": "high",
+                "summary": "ai + generation + transformer + reproducibility high",
+            },
             "datasets": [{"name": "WMT", "source": "datacite", "score": 0.81, "confidence_tier": "strong", "evidence": ["Public metadata links this dataset to the paper."]}],
             "dataset_candidates": [{"name": "WMT", "source": "datacite", "score": 0.81, "confidence_tier": "strong", "evidence": ["Public metadata links this dataset to the paper."]}],
             "methods": [],
@@ -55,6 +65,7 @@ class AppRoutesTestCase(unittest.TestCase):
         self.assertEqual(payload["title"], "Attention Is All You Need")
         self.assertEqual(payload["ai_related"], "YES")
         self.assertEqual(payload["confidence"], 0.95)
+        self.assertEqual(payload["research_profile"]["method_families"][0], "transformer")
 
     @patch("app.engine.find_relevant_papers")
     def test_relevant_papers_route(self, mock_find_relevant):
@@ -87,11 +98,21 @@ class AppRoutesTestCase(unittest.TestCase):
     def test_batch_process_returns_csv(self, mock_analyze):
         mock_analyze.return_value = {
             "title": "Test Paper",
+            "year": None,
             "journal": "N/A",
             "journal_conference": "N/A",
             "pdf_url": "",
             "categories": [],
             "ai_related": "NO",
+            "research_profile": {
+                "domains": [],
+                "tasks": [],
+                "method_families": [],
+                "artifact_profile": [],
+                "community_fit": [],
+                "reproducibility_level": "low",
+                "summary": "metadata pending",
+            },
             "datasets": [],
             "dataset_candidates": [],
             "methods": [],
@@ -157,6 +178,38 @@ class AppRoutesTestCase(unittest.TestCase):
         self.assertIn("crossref", payload["services"])
         self.assertIn("datacite", payload["services"])
         self.assertIn("openaire", payload["services"])
+
+    @patch("app.engine.explore_research_assets")
+    def test_explore_assets_route(self, mock_explore):
+        mock_explore.return_value = {
+            "query": "perovskite bandgap prediction",
+            "mode": "topic",
+            "research_profile": {
+                "domains": ["materials"],
+                "tasks": ["property prediction"],
+                "method_families": ["graph neural network"],
+                "artifact_profile": ["dataset", "code"],
+                "community_fit": ["AI4Science", "materials"],
+                "reproducibility_level": "medium",
+                "summary": "materials + property prediction + graph neural network + reproducibility medium",
+            },
+            "representative_papers": [],
+            "common_methods": [{"name": "graph neural network", "count": 2}],
+            "common_datasets": [{"name": "materials project", "count": 2, "mapping_status": "linked_dataset", "url": "https://example.com/dataset"}],
+            "code_repositories": [{"name": "repo", "count": 1, "url": "https://github.com/example/repo", "score": 0.9}],
+            "reading_path": [],
+            "total": 0,
+        }
+
+        response = self.client.post(
+            "/api/explore_assets",
+            json={"query": "perovskite bandgap prediction", "mode": "topic"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["mode"], "topic")
+        self.assertEqual(payload["research_profile"]["domains"][0], "materials")
 
 
 if __name__ == "__main__":

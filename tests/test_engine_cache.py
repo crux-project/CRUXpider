@@ -63,6 +63,23 @@ class EngineCacheTestCase(unittest.TestCase):
 
         self.assertEqual(heuristics, ["coco"])
 
+    def test_build_research_profile_infers_ai4science_metadata(self):
+        engine = CRUXpiderEngine()
+        profile = engine._build_research_profile(
+            title="Perovskite bandgap prediction with graph neural networks",
+            categories=["materials informatics"],
+            methods=["graph neural network"],
+            datasets=[{"name": "Materials Project", "mapping_status": "linked_dataset", "url": "https://example.com"}],
+            repository_candidates=[{"name": "repo", "url": "https://github.com/example/repo"}],
+            abstract_text="This work studies materials property prediction for perovskite crystals.",
+        )
+
+        self.assertIn("materials", profile["domains"])
+        self.assertIn("property prediction", profile["tasks"])
+        self.assertIn("graph neural network", profile["method_families"])
+        self.assertIn("AI4Science", profile["community_fit"])
+        self.assertEqual(profile["reproducibility_level"], "high")
+
     def test_merge_related_entry_deduplicates_similar_titles(self):
         engine = CRUXpiderEngine()
         combined = [

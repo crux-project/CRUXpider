@@ -119,7 +119,7 @@ function updateSearchHistoryUI() {
                             <div class="flex-grow-1" style="min-width: 0;">
                                 <small class="text-muted">${new Date(item.timestamp).toLocaleString()}</small>
                                 <div class="fw-bold text-truncate" title="${escapeHtml(item.title)}">${escapeHtml(item.title)}</div>
-                                ${item.result.ai_related ? `<span class="badge bg-${item.result.ai_related === 'YES' ? 'success' : 'secondary'}">${item.result.ai_related === 'YES' ? 'AI相关' : '非AI'}</span>` : ''}
+                                ${item.result.research_profile?.domains?.[0] ? `<span class="badge bg-secondary">${escapeHtml(item.result.research_profile.domains[0])}</span>` : ''}
                             </div>
                             <div class="btn-group" role="group">
                                 <button class="btn btn-sm btn-outline-primary" onclick="loadFromHistory('${escapeHtml(item.title)}')" title="重新搜索">
@@ -199,6 +199,16 @@ function initializeEventListeners() {
     if (searchForm) {
         searchForm.addEventListener('submit', handlePaperSearch);
     }
+
+    const topicAssetForm = document.getElementById('topicAssetForm');
+    if (topicAssetForm) {
+        topicAssetForm.addEventListener('submit', handleTopicAssetSearch);
+    }
+
+    const areaExploreForm = document.getElementById('areaExploreForm');
+    if (areaExploreForm) {
+        areaExploreForm.addEventListener('submit', handleAreaExplore);
+    }
     
     // Relevant papers form
     const relevantForm = document.getElementById('relevantForm');
@@ -269,6 +279,61 @@ async function handlePaperSearch(e) {
     }
 }
 
+async function handleTopicAssetSearch(e) {
+    e.preventDefault();
+    await handleResearchAssetSearch({
+        mode: 'topic',
+        inputId: 'topicQuery',
+        loadingId: 'topicAssetsLoading',
+        resultsId: 'topicAssetsResults',
+        emptyMessage: currentLanguage === 'en' ? 'Please enter a research topic' : '请输入研究主题',
+    });
+}
+
+async function handleAreaExplore(e) {
+    e.preventDefault();
+    await handleResearchAssetSearch({
+        mode: 'area',
+        inputId: 'areaQuery',
+        loadingId: 'areaExploreLoading',
+        resultsId: 'areaExploreResults',
+        emptyMessage: currentLanguage === 'en' ? 'Please enter a research area' : '请输入研究领域',
+    });
+}
+
+async function handleResearchAssetSearch({ mode, inputId, loadingId, resultsId, emptyMessage }) {
+    const input = document.getElementById(inputId);
+    const query = (input?.value || '').trim();
+    if (!query) {
+        showAlert(emptyMessage, 'warning');
+        return;
+    }
+
+    const loadingDiv = document.getElementById(loadingId);
+    const resultsDiv = document.getElementById(resultsId);
+    loadingDiv.style.display = 'block';
+    resultsDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/explore_assets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, mode, max_papers: 5 }),
+        });
+        const data = await response.json();
+        if (response.ok) {
+            displayResearchAssetResults(data, resultsId);
+        } else {
+            showAlert(data.error || '搜索失败', 'danger');
+        }
+    } catch (error) {
+        showAlert(currentLanguage === 'en' ? 'Network error, please retry' : '网络错误，请重试', 'danger');
+        console.error('Research asset search error:', error);
+    } finally {
+        loadingDiv.style.display = 'none';
+    }
+}
+
 // Display search results
 function displaySearchResults(data) {
     const resultsDiv = document.getElementById('searchResults');
@@ -278,7 +343,7 @@ function displaySearchResults(data) {
     const texts = {
         zh: {
             journal_conference: '期刊/会议:',
-            ai_related: 'AI相关:',
+            research_profile: '研究画像:',
             confidence: '置信度:',
             matched_sources: '匹配来源:',
             identifiers: '论文标识:',
@@ -301,7 +366,7 @@ function displaySearchResults(data) {
         },
         en: {
             journal_conference: 'Journal/Conference:',
-            ai_related: 'AI Related:',
+            research_profile: 'Research Profile:',
             confidence: 'Confidence:',
             matched_sources: 'Matched Sources:',
             identifiers: 'Identifiers:',
@@ -339,9 +404,9 @@ function displaySearchResults(data) {
                             <span class="info-value">${escapeHtml(data.journal_conference || data.journal || 'N/A')}</span>
                         </div>
                         <div class="info-item">
-                            <span class="info-label">${t.ai_related}</span>
+                            <span class="info-label">${t.research_profile}</span>
                             <span class="info-value">
-                                <span class="tag ${data.ai_related === 'YES' ? 'tag-success' : ''}">${data.ai_related || 'N/A'}</span>
+                                ${formatResearchProfile(data.research_profile)}
                             </span>
                         </div>
                         <div class="info-item">
@@ -654,6 +719,71 @@ function displayBatchResults(success) {
     resultsDiv.style.display = 'block';
 }
 
+function displayResearchAssetResults(data, resultsId) {
+    const resultsDiv = document.getElementById(resultsId);
+    const lang = currentLanguage || 'zh';
+    const labels = {
+        zh: {
+            representative_papers: '代表论文',
+            common_methods: '常见方法族',
+            common_datasets: '常见数据资产',
+            code_repositories: '代码仓库',
+            reading_path: '推荐阅读路径',
+            papers_found: '篇代表论文',
+            stage: '阶段',
+        },
+        en: {
+            representative_papers: 'Representative Papers',
+            common_methods: 'Common Method Families',
+            common_datasets: 'Common Dataset Assets',
+            code_repositories: 'Code Repositories',
+            reading_path: 'Suggested Reading Path',
+            papers_found: 'representative papers',
+            stage: 'Stage',
+        }
+    };
+    const t = labels[lang];
+
+    const html = `
+        <div class="card result-card fade-in">
+            <div class="result-header">
+                <h4 class="mb-0"><i class="fas fa-compass me-2"></i>${escapeHtml(data.query)}</h4>
+            </div>
+            <div class="result-body">
+                <div class="info-item">
+                    <span class="info-label">${lang === 'en' ? 'Research Profile:' : '研究画像:'}</span>
+                    <span class="info-value">${formatResearchProfile(data.research_profile)}</span>
+                </div>
+                <div class="asset-grid">
+                    <div class="asset-panel">
+                        <div class="asset-panel-title">${t.common_methods}</div>
+                        <div>${formatCountTags(data.common_methods)}</div>
+                    </div>
+                    <div class="asset-panel">
+                        <div class="asset-panel-title">${t.common_datasets}</div>
+                        <div>${formatDatasetCounts(data.common_datasets)}</div>
+                    </div>
+                    <div class="asset-panel">
+                        <div class="asset-panel-title">${t.code_repositories}</div>
+                        <div>${formatRepositoryCounts(data.code_repositories)}</div>
+                    </div>
+                    <div class="asset-panel">
+                        <div class="asset-panel-title">${t.reading_path}</div>
+                        <div>${formatReadingPath(data.reading_path, t)}</div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <div class="asset-panel-title">${t.representative_papers} (${escapeHtml(data.total)} ${t.papers_found})</div>
+                    ${formatRepresentativePapers(data.representative_papers)}
+                </div>
+            </div>
+        </div>
+    `;
+
+    resultsDiv.innerHTML = html;
+    resultsDiv.style.display = 'block';
+}
+
 // Format datasets for display
 function formatDatasets(datasets) {
     if (!datasets || datasets.length === 0) {
@@ -704,6 +834,82 @@ function getDatasetTierLabel(dataset) {
 function getDatasetMappingLabel() {
     const lang = currentLanguage || 'zh';
     return lang === 'zh' ? '可能的数据集提及' : 'Possible dataset mention';
+}
+
+function formatResearchProfile(profile) {
+    if (!profile) {
+        return 'N/A';
+    }
+    const chips = [];
+    ['domains', 'tasks', 'method_families', 'artifact_profile', 'community_fit'].forEach(key => {
+        (profile[key] || []).slice(0, 3).forEach(item => chips.push(`<span class="tag tag-source">${escapeHtml(item)}</span>`));
+    });
+    chips.push(`<span class="tag tag-confidence">${escapeHtml(profile.reproducibility_level || 'low')}</span>`);
+    if (profile.summary) {
+        chips.unshift(`<span class="tag tag-success">${escapeHtml(profile.summary)}</span>`);
+    }
+    return chips.join('');
+}
+
+function formatCountTags(items) {
+    if (!items || items.length === 0) {
+        return 'N/A';
+    }
+    return items.map(item => `<span class="tag tag-warning">${escapeHtml(item.name)} · ${escapeHtml(item.count)}</span>`).join('');
+}
+
+function formatDatasetCounts(items) {
+    if (!items || items.length === 0) {
+        return 'N/A';
+    }
+    return items.map(item => `
+        <div class="asset-line">
+            ${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" class="dataset-link">${escapeHtml(item.name)}</a>` : `<span>${escapeHtml(item.name)}</span>`}
+            <span class="paper-meta-chip">${escapeHtml(item.count)}</span>
+            ${item.mapping_status === 'possible_mention' ? `<span class="dataset-kind dataset-kind-mention">${escapeHtml(getDatasetMappingLabel())}</span>` : ''}
+        </div>
+    `).join('');
+}
+
+function formatRepositoryCounts(items) {
+    if (!items || items.length === 0) {
+        return 'N/A';
+    }
+    return items.map(item => `
+        <div class="asset-line">
+            <a href="${escapeHtml(item.url)}" target="_blank" class="repo-link">${escapeHtml(item.name)}</a>
+            <span class="paper-meta-chip">${escapeHtml(item.count)}</span>
+        </div>
+    `).join('');
+}
+
+function formatReadingPath(items, labels) {
+    if (!items || items.length === 0) {
+        return 'N/A';
+    }
+    return items.map(item => `
+        <div class="asset-line">
+            ${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" class="dataset-link">${escapeHtml(item.title)}</a>` : `<span>${escapeHtml(item.title)}</span>`}
+            <span class="paper-meta-chip">${escapeHtml(labels.stage)}: ${escapeHtml(item.stage)}</span>
+        </div>
+    `).join('');
+}
+
+function formatRepresentativePapers(items) {
+    if (!items || items.length === 0) {
+        return '<div class="text-muted">N/A</div>';
+    }
+    return items.map(item => `
+        <div class="related-group-card">
+            <div class="related-group-title">${escapeHtml(item.title)}</div>
+            <div class="paper-meta">
+                ${item.year ? `<span class="paper-meta-chip">${escapeHtml(item.year)}</span>` : ''}
+                ${item.journal_conference ? `<span class="paper-meta-chip">${escapeHtml(item.journal_conference)}</span>` : ''}
+                ${item.confidence ? `<span class="paper-meta-chip">confidence: ${escapeHtml(item.confidence)}</span>` : ''}
+            </div>
+            <div class="mt-2">${formatResearchProfile(item.research_profile)}</div>
+        </div>
+    `).join('');
 }
 
 function formatConfidence(confidence) {
@@ -878,7 +1084,7 @@ function updateDynamicTexts(lang) {
     // Update search result labels
     const resultLabels = {
         'journal_conference': lang === 'en' ? 'Journal/Conference:' : '期刊/会议:',
-        'ai_related': lang === 'en' ? 'AI Related:' : 'AI相关:',
+        'research_profile': lang === 'en' ? 'Research Profile:' : '研究画像:',
         'pdf_url': lang === 'en' ? 'PDF Link:' : 'PDF链接:',
         'repository_url': lang === 'en' ? 'Code Repository:' : '代码仓库:',
         'categories': lang === 'en' ? 'Categories:' : '分类:',
