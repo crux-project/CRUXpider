@@ -193,18 +193,17 @@ class AppRoutesTestCase(unittest.TestCase):
                 "reproducibility_level": "medium",
                 "summary": "materials + property prediction + graph neural network + reproducibility medium",
             },
-            "representative_papers": [],
             "common_methods": [{"name": "graph neural network", "count": 2}],
             "common_datasets": [{"name": "materials project", "count": 2, "mapping_status": "linked_dataset", "url": "https://example.com/dataset"}],
+            "benchmark_assets": [{"name": "MatBench", "count": 1, "url": "https://example.com/benchmark"}],
             "code_repositories": [{"name": "repo", "count": 1, "url": "https://github.com/example/repo", "score": 0.9}],
-            "reading_path": [],
-            "research_brief": {
+            "asset_brief": {
                 "headline": "materials + property prediction + graph neural network + reproducibility medium",
-                "starter_paper": {},
+                "focus": [{"label": "datasets", "count": 1}],
                 "actions": ["Start by checking dataset candidates around Materials Project."],
                 "availability": {"papers": 0, "datasets": 1, "methods": 1, "repositories": 1},
             },
-            "total": 0,
+            "total_assets": 4,
         }
 
         response = self.client.post(
@@ -216,7 +215,8 @@ class AppRoutesTestCase(unittest.TestCase):
         payload = response.get_json()
         self.assertEqual(payload["mode"], "topic")
         self.assertEqual(payload["research_profile"]["domains"][0], "materials")
-        self.assertIn("research_brief", payload)
+        self.assertIn("asset_brief", payload)
+        self.assertIn("benchmark_assets", payload)
 
 
 if __name__ == "__main__":

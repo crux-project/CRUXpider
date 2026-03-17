@@ -182,6 +182,68 @@ class EngineCacheTestCase(unittest.TestCase):
         self.assertIn("chem", aggregated["community_fit"])
         self.assertNotIn("materials", aggregated["community_fit"])
 
+    def test_explore_research_assets_topic_returns_asset_finder_shape(self):
+        engine = CRUXpiderEngine()
+        representative = {
+            "title": "MatBench discovery",
+            "year": 2024,
+            "confidence": 0.8,
+            "citation_count": 10,
+            "repository_candidates": [{"name": "repo", "url": "https://github.com/example/repo", "score": 0.9}],
+            "datasets": [{"name": "materials project", "mapping_status": "linked_dataset", "url": "https://example.com/dataset"}],
+            "research_profile": {
+                "domains": ["materials"],
+                "tasks": ["benchmarking"],
+                "method_families": ["graph neural network"],
+                "artifact_profile": ["dataset", "benchmark", "code"],
+                "community_fit": ["AI4Science", "materials"],
+                "reproducibility_level": "medium",
+                "summary": "materials + benchmarking + graph neural network + reproducibility medium",
+            },
+            "landing_page_url": "https://example.com/paper",
+        }
+
+        with patch.object(engine, "_search_openalex_free_text", return_value=[{"title": "MatBench discovery", "citation_count": 10}]), patch.object(
+            engine, "analyze_single_paper", return_value=representative
+        ):
+            result = engine.explore_research_assets("materials benchmark", mode="topic", max_papers=3)
+
+        self.assertEqual(result["mode"], "topic")
+        self.assertIn("asset_brief", result)
+        self.assertIn("benchmark_assets", result)
+        self.assertNotIn("representative_papers", result)
+        self.assertGreaterEqual(result["total_assets"], 1)
+
+    def test_explore_research_assets_area_returns_route_map_shape(self):
+        engine = CRUXpiderEngine()
+        representative = {
+            "title": "Single-cell atlas modeling",
+            "year": 2024,
+            "confidence": 0.8,
+            "citation_count": 10,
+            "repository_candidates": [],
+            "datasets": [],
+            "research_profile": {
+                "domains": ["biology"],
+                "tasks": ["genomics"],
+                "method_families": ["transformer"],
+                "artifact_profile": [],
+                "community_fit": ["AI4Science", "bio"],
+                "reproducibility_level": "low",
+                "summary": "biology + genomics + transformer + reproducibility low",
+            },
+            "landing_page_url": "https://example.com/paper",
+        }
+
+        with patch.object(engine, "_search_openalex_free_text", return_value=[{"title": "Single-cell atlas modeling", "citation_count": 10}]), patch.object(
+            engine, "analyze_single_paper", return_value=representative
+        ):
+            result = engine.explore_research_assets("single-cell biology", mode="area", max_papers=3)
+
+        self.assertEqual(result["mode"], "area")
+        self.assertIn("research_brief", result)
+        self.assertIn("representative_papers", result)
+        self.assertIn("subdirection_layers", result)
     def test_merge_related_entry_deduplicates_similar_titles(self):
         engine = CRUXpiderEngine()
         combined = [

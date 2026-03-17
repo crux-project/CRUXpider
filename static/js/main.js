@@ -725,11 +725,17 @@ function displayResearchAssetResults(data, resultsId) {
     const labels = {
         zh: {
             assistant_brief: '研究助手摘要',
+            asset_brief: '资产发现摘要',
             route_intro: '先看整体研究画像，再从起步论文切入，最后检查公开资产和下一步动作。',
             about_area: '这个方向在研究什么',
             start_here: '建议从这里开始',
             available_assets: '这里有哪些研究资产',
             next_actions: '下一步建议',
+            asset_focus: '本主题最值得先看什么',
+            benchmark_assets: 'Benchmark 资产',
+            subdirections: '子方向分层',
+            subdirection_summary: '子方向摘要',
+            total_assets: '项资产',
             paper_count: '论文',
             dataset_count: '数据资产',
             repo_count: '代码仓库',
@@ -745,11 +751,17 @@ function displayResearchAssetResults(data, resultsId) {
         },
         en: {
             assistant_brief: 'Research Assistant Brief',
+            asset_brief: 'Asset Finder Brief',
             route_intro: 'Start with the research profile, read an anchor paper, then inspect public assets and next actions.',
             about_area: 'What this area is about',
             start_here: 'Start Here',
             available_assets: 'What assets are available',
             next_actions: 'Next Actions',
+            asset_focus: 'What to inspect first',
+            benchmark_assets: 'Benchmark Assets',
+            subdirections: 'Subdirection Layers',
+            subdirection_summary: 'Subdirection Summary',
+            total_assets: 'assets',
             paper_count: 'papers',
             dataset_count: 'dataset assets',
             repo_count: 'repositories',
@@ -766,21 +778,33 @@ function displayResearchAssetResults(data, resultsId) {
     };
     const t = labels[lang];
 
-    const html = `
-        <div class="card result-card fade-in">
-            <div class="result-header">
-                <h4 class="mb-0"><i class="fas fa-compass me-2"></i>${escapeHtml(data.query)}</h4>
-            </div>
-            <div class="result-body">
-                ${formatResearchBrief(data.research_brief, data.research_profile, t, lang)}
-                ${formatResearchRouteMap(data, t)}
-                <div class="mt-4">
-                    <div class="asset-panel-title">${t.representative_papers} (${escapeHtml(data.total)} ${t.papers_found})</div>
-                    ${formatRepresentativePapers(data.representative_papers)}
+    const html = data.mode === 'area'
+        ? `
+            <div class="card result-card fade-in">
+                <div class="result-header">
+                    <h4 class="mb-0"><i class="fas fa-compass me-2"></i>${escapeHtml(data.query)}</h4>
+                </div>
+                <div class="result-body">
+                    ${formatResearchBrief(data.research_brief, data.research_profile, t, lang)}
+                    ${formatResearchRouteMap(data, t)}
+                    ${formatSubdirectionLayers(data.subdirection_layers, t)}
+                    <div class="mt-4">
+                        <div class="asset-panel-title">${t.representative_papers} (${escapeHtml(data.total)} ${t.papers_found})</div>
+                        ${formatRepresentativePapers(data.representative_papers)}
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        `
+        : `
+            <div class="card result-card fade-in">
+                <div class="result-header">
+                    <h4 class="mb-0"><i class="fas fa-boxes-stacked me-2"></i>${escapeHtml(data.query)}</h4>
+                </div>
+                <div class="result-body">
+                    ${formatTopicAssetFinder(data, t, lang)}
+                </div>
+            </div>
+        `;
 
     resultsDiv.innerHTML = html;
     resultsDiv.style.display = 'block';
@@ -994,6 +1018,88 @@ function formatResearchRouteMap(data, labels) {
                     <div class="route-step-title">${labels.next_actions}</div>
                     <div class="route-step-body">${routeActions}</div>
                 </div>
+            </div>
+        </div>
+    `;
+}
+
+function formatTopicAssetFinder(data, labels, lang) {
+    const brief = data.asset_brief || {};
+    const focus = brief.focus || [];
+    const actions = brief.actions || [];
+    return `
+        <div class="assistant-brief">
+            <div class="assistant-headline">${escapeHtml(brief.headline || data.research_profile?.summary || 'N/A')}</div>
+            <div class="assistant-metrics">
+                ${focus.map(item => `<span class="paper-meta-chip">${escapeHtml(item.count)} ${escapeHtml(item.label)}</span>`).join('')}
+            </div>
+            <div class="info-item">
+                <span class="info-label">${lang === 'en' ? 'Research Profile:' : '研究画像:'}</span>
+                <span class="info-value">${formatResearchProfile(data.research_profile)}</span>
+            </div>
+            <div class="assistant-lead">${escapeHtml(labels.asset_focus)}</div>
+            <div class="asset-grid mt-3">
+                <div class="asset-panel">
+                    <div class="asset-panel-title">${labels.common_datasets}</div>
+                    <div>${formatDatasetCounts(data.common_datasets)}</div>
+                </div>
+                <div class="asset-panel">
+                    <div class="asset-panel-title">${labels.code_repositories}</div>
+                    <div>${formatRepositoryCounts(data.code_repositories)}</div>
+                </div>
+                <div class="asset-panel">
+                    <div class="asset-panel-title">${labels.benchmark_assets}</div>
+                    <div>${formatBenchmarkAssets(data.benchmark_assets)}</div>
+                </div>
+                <div class="asset-panel">
+                    <div class="asset-panel-title">${labels.common_methods}</div>
+                    <div>${formatCountTags(data.common_methods)}</div>
+                </div>
+            </div>
+            <div class="asset-panel mt-3">
+                <div class="asset-panel-title">${labels.next_actions}</div>
+                ${actions.length > 0 ? actions.map(item => `<div class="assistant-line">${escapeHtml(item)}</div>`).join('') : '<div class="assistant-line">N/A</div>'}
+            </div>
+            <div class="text-muted mt-3">${escapeHtml(data.total_assets || 0)} ${labels.total_assets}</div>
+        </div>
+    `;
+}
+
+function formatBenchmarkAssets(items) {
+    if (!items || items.length === 0) {
+        return 'N/A';
+    }
+    return items.map(item => `
+        <div class="asset-line">
+            ${item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" class="dataset-link">${escapeHtml(item.name)}</a>` : `<span>${escapeHtml(item.name)}</span>`}
+            <span class="paper-meta-chip">${escapeHtml(item.count)}</span>
+        </div>
+    `).join('');
+}
+
+function formatSubdirectionLayers(items, labels) {
+    if (!items || items.length === 0) {
+        return '';
+    }
+    return `
+        <div class="mt-4">
+            <div class="asset-panel-title">${labels.subdirections}</div>
+            <div class="asset-grid">
+                ${items.map(item => `
+                    <div class="asset-panel">
+                        <div class="asset-panel-title">${escapeHtml(item.name)}</div>
+                        <div class="assistant-line">${escapeHtml(item.summary || item.name)}</div>
+                        <div class="paper-meta mb-2">
+                            <span class="paper-meta-chip">${escapeHtml(item.count)} ${escapeHtml(labels.paper_count)}</span>
+                        </div>
+                        ${item.methods && item.methods.length > 0 ? `<div class="assistant-line"><strong>${escapeHtml(labels.common_methods)}:</strong> ${escapeHtml(item.methods.join(', '))}</div>` : ''}
+                        ${item.papers && item.papers.length > 0 ? item.papers.map(paper => `
+                            <div class="asset-line">
+                                ${paper.url ? `<a href="${escapeHtml(paper.url)}" target="_blank" class="dataset-link">${escapeHtml(paper.title)}</a>` : `<span>${escapeHtml(paper.title)}</span>`}
+                            </div>
+                        `).join('') : ''}
+                    </div>
+                `).join('')}
             </div>
         </div>
     `;
